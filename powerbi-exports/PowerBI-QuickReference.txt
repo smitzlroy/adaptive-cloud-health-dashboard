@@ -1,0 +1,72 @@
+═══════════════════════════════════════════════════════
+  POWER BI QUICK REFERENCE CARD
+═══════════════════════════════════════════════════════
+
+CSV FILES LOCATION:
+
+
+IMPORT SCRIPT:
+C:\AI\adaptive-cloud-health-dashboard\powerbi-exports\PowerBI-DataModel.m
+
+RELATIONSHIPS GUIDE:
+C:\AI\adaptive-cloud-health-dashboard\powerbi-exports\PowerBI-Relationships.txt
+
+═══════════════════════════════════════════════════════
+  KEY TABLES
+═══════════════════════════════════════════════════════
+
+HUB TABLE (for relationships):
+→ ResourceSummary
+
+CORE INVENTORY:
+→ ResourceSummary, HardwareCapacity, ConnectivityStatus
+
+COMPLIANCE:
+→ PolicyCompliance, GovernanceTags, Configuration, SecurityPosture
+
+COST OPTIMIZATION:
+→ ZombieResources, LocationDistribution, Rightsizing
+
+OPERATIONS:
+→ ArcExtensions, KubernetesVersions, ArcAgentVersions
+
+═══════════════════════════════════════════════════════
+  RECOMMENDED PAGES
+═══════════════════════════════════════════════════════
+
+PAGE 1: Executive Summary
+- Cards: Total Resources, Compliance %, Critical Alerts
+- Pie: Resources by Type
+- Map: Geographic Distribution
+
+PAGE 2: Health & Operations
+- Gauge: Connectivity Health
+- Table: Critical/Warning Resources
+- Bar: Extension Status
+
+PAGE 3: Cost Optimization
+- Cards: Zombie Resources, Expensive Regions
+- Table: Deletion Candidates (90+ days)
+- Matrix: Regional Cost Analysis
+
+PAGE 4: Hardware Capacity
+- Cards: Total CPUs, Total Memory, Clusters
+- Column: Capacity by Cluster
+- Treemap: Size Distribution
+
+PAGE 5: Governance & Security
+- Donut: Tag Compliance
+- Funnel: Security Features
+- Table: Untagged Resources
+
+═══════════════════════════════════════════════════════
+  REFRESH DATA
+═══════════════════════════════════════════════════════
+
+1. Run: .\Export-ToPowerBI.ps1
+2. In Power BI: Home → Refresh
+
+For automatic refresh, schedule Export-ToPowerBI.ps1 
+using Windows Task Scheduler (daily at 6 AM recommended)
+
+═══════════════════════════════════════════════════════

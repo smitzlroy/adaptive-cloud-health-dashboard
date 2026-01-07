@@ -1,0 +1,75 @@
+// ===================================================
+// Recommended Relationships for Data Model
+// ===================================================
+
+// Manual Steps in Power BI:
+// 1. Go to Model View
+// 2. Create the following relationships:
+
+// Resource Summary (Hub Table)
+- ResourceSummary[ResourceId] → ConnectivityStatus[ResourceId]
+- ResourceSummary[ResourceId] → GovernanceTags[ResourceId]
+- ResourceSummary[SubscriptionId] → PolicyCompliance[SubscriptionId]
+
+// Azure Local Specific
+- ResourceSummary[ResourceName] → HardwareCapacity[ClusterName]
+- ResourceSummary[ResourceName] → Configuration[ClusterName]
+- ResourceSummary[ResourceName] → SecurityPosture[ClusterName]
+
+// Extensions
+- ResourceSummary[ResourceName] → ArcExtensions[ParentResource]
+
+// Lifecycle & Optimization
+- ResourceSummary[ResourceId] → ResourceLifecycle[ResourceId]
+- ResourceSummary[ResourceId] → ZombieResources[ResourceId]
+- ResourceSummary[ResourceId] → LocationDistribution[ResourceId]
+
+// Versions
+- ResourceSummary[ResourceName] → KubernetesVersions[ClusterName] (for AKS Arc)
+- ResourceSummary[ResourceName] → ArcAgentVersions[ServerName] (for Arc Servers)
+
+// ===================================================
+// DAX Measures to Create
+// ===================================================
+
+// Total Resources
+Total Resources = COUNTROWS(ResourceSummary)
+
+// Compliance Rate
+Compliance Rate = 
+DIVIDE(
+    COUNTROWS(FILTER(PolicyCompliance, PolicyCompliance[IsCompliant] = "True")),
+    COUNTROWS(PolicyCompliance),
+    0
+) * 100
+
+// Critical Connections
+Critical Connections = 
+COUNTROWS(FILTER(ConnectivityStatus, ConnectivityStatus[HealthStatus] = "Critical"))
+
+// Zombie Resources
+Zombie Resources = 
+COUNTROWS(FILTER(ZombieResources, VALUE(ZombieResources[DaysDisconnected]) >= 90))
+
+// Tag Compliance
+Tag Compliance % = 
+DIVIDE(
+    COUNTROWS(FILTER(GovernanceTags, GovernanceTags[HasOwnerTag] = "True")),
+    COUNTROWS(GovernanceTags),
+    0
+) * 100
+
+// Total CPU Cores
+Total CPU Cores = SUM(VALUE(HardwareCapacity[CPUCores]))
+
+// Total Memory TB
+Total Memory TB = SUM(VALUE(HardwareCapacity[MemoryTB]))
+
+// Failed Extensions
+Failed Extensions = 
+COUNTROWS(FILTER(ArcExtensions, ArcExtensions[Status] = "Failed"))
+
+// Expensive Region Resources
+Expensive Region Resources = 
+COUNTROWS(FILTER(LocationDistribution, LocationDistribution[IsExpensiveRegion] = "True"))
+

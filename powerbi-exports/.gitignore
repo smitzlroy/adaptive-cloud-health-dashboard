@@ -1,0 +1,7 @@
+# Power BI Export Data (generated files)
+*.csv
+export-metadata.json
+
+# Keep helper files
+!PowerBI-*.txt
+!PowerBI-*.m
