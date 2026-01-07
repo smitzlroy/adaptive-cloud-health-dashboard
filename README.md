@@ -38,12 +38,73 @@ This solution provides a centralized view of health, status, inventory, complian
 
 ## 🚀 Quick Start
 
+### 🎯 Choose Your Dashboard
+
+We offer **two dashboard options** to fit your needs:
+
+| Feature | **Inventory Dashboard** ⭐ | **Full Dashboard** 💰 |
+|---------|---------------------------|----------------------|
+| **Cost** | **FREE** | ~$100-500+/month |
+| **Setup Time** | 5 minutes | 20+ minutes |
+| **Requirements** | Azure CLI only | Log Analytics + Agents on ALL VMs |
+| **Data Source** | Azure Resource Graph (built-in) | Log Analytics Workspace |
+| **Updates** | Real-time | Near real-time (1-5 min delay) |
+| **Resource Inventory** | ✅ Counts, lists, tags | ✅ Full details |
+| **Policy Compliance** | ✅ Compliance status | ✅ Plus violation details |
+| **Performance Metrics** | ❌ Not available | ✅ CPU, Memory, Disk |
+| **Health Monitoring** | ❌ Not available | ✅ Heartbeat, uptime |
+| **Custom Metrics** | ❌ Not available | ✅ Application insights |
+| **Best For** | Quick inventory & compliance view | Production monitoring & alerting |
+
+### ⚡ Deploy Inventory Dashboard (FREE - Recommended to Start)
+
+**Perfect for getting started with zero cost:**
+
+1. **Login to Azure**
+   ```powershell
+   az login
+   ```
+
+2. **Create config file**
+   ```powershell
+   Copy-Item .\scripts\deployment\config.template.json .\scripts\deployment\config.json
+   # Edit config.json with your subscription ID and resource group
+   ```
+
+3. **Deploy**
+   ```powershell
+   .\scripts\deployment\Deploy-Inventory-Dashboard.ps1
+   ```
+
+✨ **Done!** Access your dashboard in Azure Portal > Monitor > Workbooks
+
+### 💰 Deploy Full Dashboard (Costs Apply)
+
+**For production monitoring with performance metrics:**
+
+⚠️ **WARNING**: Requires Azure Monitor Agent on ALL monitored VMs and incurs data ingestion costs (~$2.30/GB).
+
+```powershell
+.\scripts\deployment\Deploy-Full-Dashboard.ps1
+```
+
+After deployment, you must:
+1. Install Azure Monitor Agent on all target VMs
+2. Associate Data Collection Rules with your VMs
+3. Monitor costs in Cost Management
+
+### 🔄 Upgrade Path
+
+Start with the **free Inventory Dashboard** to evaluate the solution. Upgrade to the **Full Dashboard** later when you need performance metrics and alerting.
+
+✨ **Details**: See [QUICKSTART.md](QUICKSTART.md) for step-by-step instructions.
+
 ### Prerequisites
 
 - Azure subscription(s) with:
   - Azure Local clusters and/or AKS Arc clusters
   - Azure Arc-enabled services
-  - Log Analytics workspace
+  - Log Analytics workspace (or will be created)
 - Azure CLI installed
 - PowerShell 7+ (for automation scripts)
 - (Optional) Power BI Desktop for advanced visualizations

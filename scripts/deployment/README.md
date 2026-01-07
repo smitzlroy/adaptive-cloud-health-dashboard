@@ -1,96 +1,148 @@
 # Deployment Scripts
 
-This directory contains PowerShell scripts for deploying the Adaptive Cloud Health Dashboard to Azure.
+Two deployment options for the Adaptive Cloud Health Dashboard.
 
-## Scripts Overview
+---
 
-### Deploy-Resources.ps1
-Deploys all required Azure resources including:
+## 🎯 Choose Your Deployment
+
+### Option 1: Inventory Dashboard (FREE) ⭐
+
+**Deploy inventory-only dashboard with zero cost:**
+
+```powershell
+.\Deploy-Inventory-Dashboard.ps1
+```
+
+**What you get:**
+- Resource inventory across subscriptions
+- Policy compliance tracking
+- Tag analysis
+- Resource counts and lists
+- **NO COST** - uses Azure Resource Graph (free)
+- **NO AGENTS** required
+
+**Best for:** Quick inventory, compliance view, evaluating the solution
+
+---
+
+### Option 2: Full Dashboard (PAID) 💰
+
+**Deploy complete monitoring with performance metrics:**
+
+```powershell
+.\Deploy-Full-Dashboard.ps1
+```
+
+**What you get:**
+- Everything from Inventory Dashboard PLUS:
+- Performance metrics (CPU, Memory, Disk, Network)
+- VM health monitoring and heartbeat
+- Custom application metrics
+- Detailed diagnostics and logging
+
+**Requirements:**
+- Log Analytics workspace (~$2.30/GB ingestion)
+- Azure Monitor Agent on ALL monitored VMs
+- Data Collection Rules
+
+**Estimated costs:** $100-500+/month depending on scale
+
+**Best for:** Production monitoring, alerting, performance tracking
+
+---
+
+## 📋 Prerequisites (Both Options)
+
+1. **Azure CLI** installed
+   ```powershell
+   az --version
+   ```
+
+2. **PowerShell 7+**
+   ```powershell
+   $PSVersionTable.PSVersion
+   ```
+
+3. **Azure Authentication**
+   ```powershell
+   az login
+   ```
+
+4. **Configuration file created**
+   ```powershell
+   Copy-Item .\config.template.json .\config.json
+   # Edit config.json with your subscription ID
+   ```
+
+---
+
+## 🚀 Quick Start
+
+### Inventory Dashboard Deployment
+
+```powershell
+# 1. Login
+az login
+
+# 2. Create config
+Copy-Item .\config.template.json .\config.json
+code .\config.json  # Edit with your subscription ID
+
+# 3. Deploy
+.\Deploy-Inventory-Dashboard.ps1
+```
+
+**Deployment time:** ~2-5 minutes
+
+**Resources created:**
+- Resource Group (if doesn't exist)
+- Azure Workbook (Inventory Dashboard)
+
+---
+
+### Full Dashboard Deployment
+
+```powershell
+# 1. Login
+az login
+
+# 2. Create config
+Copy-Item .\config.template.json .\config.json
+code .\config.json  # Edit with your subscription ID
+
+# 3. Deploy (you'll see cost warning)
+.\Deploy-Full-Dashboard.ps1
+# Type 'yes' to confirm deployment
+
+# 4. Install agents on target VMs (see below)
+```
+
+**Deployment time:** ~15-20 minutes
+
+**Resources created:**
 - Resource Group
 - Log Analytics Workspace
 - Data Collection Rules
-- Monitoring Solutions
-- RBAC permissions
+- Azure Workbook (Full Dashboard)
 
-### Import-Workbooks.ps1
-Imports Azure Workbook templates to your subscription.
+---
 
-### Configure-Environment.ps1
-*(Placeholder for future implementation)*
+## ⚙️ Configuration File
 
-Configures Azure Local and AKS Arc clusters for data collection.
-
-## Prerequisites
-
-Before running deployment scripts:
-
-1. **Install Azure CLI**:
-   ```powershell
-   winget install Microsoft.AzureCLI
-   ```
-
-2. **Install PowerShell Modules**:
-   ```powershell
-   Install-Module -Name Az -Scope CurrentUser -Force
-   ```
-
-3. **Login to Azure**:
-   ```powershell
-   az login
-   Connect-AzAccount
-   ```
-
-4. **Set Subscription**:
-   ```powershell
-   az account set --subscription "your-subscription-id"
-   ```
-
-## Quick Start
-
-### 1. Configure Settings
-
-Copy and edit the configuration template:
-```powershell
-Copy-Item config.template.json config.json
-# Edit config.json with your details
-```
-
-### 2. Deploy Resources
-
-```powershell
-.\Deploy-Resources.ps1 -ConfigFile .\config.json
-```
-
-Or specify parameters directly:
-```powershell
-.\Deploy-Resources.ps1 `
-  -SubscriptionId "xxx-xxx-xxx" `
-  -ResourceGroup "rg-dashboard" `
-  -Location "eastus" `
-  -WorkspaceName "law-dashboard"
-```
-
-### 3. Import Workbooks
-
-```powershell
-.\Import-Workbooks.ps1 `
-  -SubscriptionId "xxx-xxx-xxx" `
-  -ResourceGroup "rg-dashboard"
-```
-
-## Configuration File
-
-The `config.json` file contains all deployment settings:
+### config.json Structure
 
 ```json
 {
-  "subscriptions": ["sub-id-1", "sub-id-2"],
+  "subscriptions": [
+    "12345678-1234-1234-1234-123456789abc"
+  ],
   "resourceGroup": "rg-adaptive-cloud-dashboard",
   "location": "eastus",
   "logAnalytics": {
     "name": "law-adaptive-cloud",
     "sku": "PerGB2018",
-    "retentionDays": 90
+    "retentionDays": 30
   },
   "tags": {
     "environment": "production",
@@ -99,217 +151,311 @@ The `config.json` file contains all deployment settings:
 }
 ```
 
-## Deployment Outputs
+### Configuration Reference
 
-After successful deployment:
+| Setting | Required | Description | Example |
+|---------|----------|-------------|---------|
+| `subscriptions` | ✅ | Array of subscription IDs to monitor | `["sub-1", "sub-2"]` |
+| `resourceGroup` | ✅ | Resource group name | `"rg-dashboard"` |
+| `location` | ✅ | Azure region | `"eastus"`, `"westus2"` |
+| `logAnalytics.name` | Full only | Workspace name | `"law-workspace"` |
+| `logAnalytics.sku` | Full only | Pricing tier | `"PerGB2018"` |
+| `logAnalytics.retentionDays` | Full only | Data retention (30-730) | `30`, `90`, `365` |
+| `tags` | Optional | Resource tags | `{"env": "prod"}` |
 
-```
-========================================
-Deployment completed successfully!
-========================================
-
-Resources created:
-  Resource Group: rg-adaptive-cloud-dashboard
-  Log Analytics Workspace: law-adaptive-cloud
-  Workspace ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-  Location: eastus
-
-Next steps:
-  1. Import workbooks: .\Import-Workbooks.ps1
-  2. Configure data collection on your clusters
-  3. Access dashboards in Azure Portal
-```
-
-## Post-Deployment Configuration
-
-### Enable Monitoring on Azure Local
-
-```powershell
-az stack-hci arc-setting update `
-  --resource-group "your-rg" `
-  --cluster-name "cluster-name" `
-  --name "default" `
-  --monitoring-enabled true `
-  --log-analytics-workspace-id "/subscriptions/.../resourceGroups/.../providers/Microsoft.OperationalInsights/workspaces/law-name"
-```
-
-### Enable Monitoring on AKS Arc
-
-```powershell
-az k8s-extension create `
-  --name azuremonitor-containers `
-  --cluster-name "cluster-name" `
-  --resource-group "your-rg" `
-  --cluster-type connectedClusters `
-  --extension-type Microsoft.AzureMonitor.Containers `
-  --configuration-settings logAnalyticsWorkspaceResourceID="/subscriptions/.../resourceGroups/.../providers/Microsoft.OperationalInsights/workspaces/law-name"
-```
-
-### Enable Monitoring on Arc-Enabled Servers
-
-```powershell
-# Using Azure Portal
-1. Navigate to Arc-enabled server
-2. Select Extensions
-3. Add "Azure Monitor Agent"
-4. Configure with Log Analytics workspace
-
-# Or using CLI
-az connectedmachine extension create `
-  --name AzureMonitorWindowsAgent `
-  --machine-name "server-name" `
-  --resource-group "your-rg" `
-  --type AzureMonitorWindowsAgent `
-  --publisher Microsoft.Azure.Monitor `
-  --settings '{"workspaceId":"workspace-guid"}' `
-  --protected-settings '{"workspaceKey":"workspace-key"}'
-```
-
-## Troubleshooting
-
-### Permission Errors
-
-**Issue**: Insufficient permissions to create resources
-
-**Solution**: Ensure you have `Contributor` role on the subscription:
-```powershell
-az role assignment create `
-  --role "Contributor" `
-  --assignee "your-upn@domain.com" `
-  --scope "/subscriptions/your-subscription-id"
-```
-
-### Workspace Creation Fails
-
-**Issue**: Workspace name already exists
-
-**Solution**: Use a different name or delete existing workspace:
-```powershell
-az monitor log-analytics workspace delete `
-  --resource-group "rg-name" `
-  --workspace-name "workspace-name"
-```
-
-### Data Not Appearing
-
-**Issue**: Dashboards show no data after deployment
-
-**Solution**:
-1. Verify data collection is enabled on resources
-2. Check agents are running:
-   ```powershell
-   Heartbeat | take 10
-   ```
-3. Wait 5-10 minutes for initial data ingestion
-
-### Query Timeouts
-
-**Issue**: Queries timeout in workbooks
-
-**Solution**:
-- Reduce time range
-- Limit subscriptions in filter
-- Optimize queries (add filters earlier)
-
-## Manual Steps
-
-Some configurations require manual steps in Azure Portal:
-
-### Configure Alerts
-
-1. Navigate to Monitor > Alerts
-2. Create alert rule
-3. Select Log Analytics workspace
-4. Define condition (KQL query)
-5. Configure action group (email, webhook)
-
-### Set Up Dashboards
-
-1. Navigate to Dashboard hub
-2. Create new dashboard
-3. Pin workbook charts
-4. Arrange layout
-5. Share with team
-
-### Configure Workbook Permissions
-
-1. Navigate to workbook
-2. Click Access control (IAM)
-3. Add role assignment
-4. Select user/group and role
-5. Save
-
-## Best Practices
-
-1. **Use Separate Resource Groups**: Create dedicated RG for dashboard resources
-2. **Tag Resources**: Apply consistent tags for cost tracking
-3. **Set Retention**: Configure appropriate data retention (30-365 days)
-4. **Monitor Costs**: Set up cost alerts for Log Analytics ingestion
-5. **Backup Workbooks**: Export workbooks to Git regularly
-6. **Test in Dev**: Test changes in non-production first
-
-## Cost Estimation
-
-Typical monthly costs:
-
-| Component | Volume | Cost (USD) |
-|-----------|--------|------------|
-| Log Analytics Ingestion | 500 GB | $100-150 |
-| Log Analytics Retention | 90 days | $50-75 |
-| Resource Graph Queries | Free | $0 |
-| Workbooks | Free | $0 |
-| **Total** | | **$150-225** |
-
-*Costs vary by region and actual data volume*
-
-## Cleanup
-
-To remove all deployed resources:
-
-```powershell
-# Delete resource group (removes all resources)
-az group delete --name "rg-adaptive-cloud-dashboard" --yes
-
-# Or use planned cleanup script
-.\Uninstall-Dashboard.ps1 -ResourceGroup "rg-adaptive-cloud-dashboard" -Confirm
-```
-
-## Advanced Deployment Options
-
-### Multi-Region Deployment
-
-Deploy to multiple regions for global coverage:
-
-```powershell
-$regions = @("eastus", "westeurope", "southeastasia")
-
-foreach ($region in $regions) {
-  .\Deploy-Resources.ps1 `
-    -SubscriptionId "xxx" `
-    -ResourceGroup "rg-dashboard-$region" `
-    -Location $region
-}
-```
-
-### Infrastructure as Code
-
-Use Bicep/ARM templates for repeatable deployments:
-
-```powershell
-# Deploy using ARM template (future enhancement)
-az deployment group create `
-  --resource-group "rg-dashboard" `
-  --template-file "./templates/arm/main.bicep" `
-  --parameters @config.parameters.json
-```
-
-## Support
-
-For deployment issues:
-- Review [Setup Guide](../../docs/setup/SETUP.md)
-- Check [Troubleshooting](../../docs/setup/SETUP.md#troubleshooting)
-- Open issue on GitHub
+**Note:** `logAnalytics` settings are only used by `Deploy-Full-Dashboard.ps1`.
 
 ---
 
-For complete documentation, see [docs/setup/SETUP.md](../../docs/setup/SETUP.md).
+## 🛠️ Script Parameters
+
+### Deploy-Inventory-Dashboard.ps1
+
+```powershell
+# Basic deployment
+.\Deploy-Inventory-Dashboard.ps1
+
+# Custom config file
+.\Deploy-Inventory-Dashboard.ps1 -ConfigFile .\my-config.json
+
+# Test mode (dry run)
+.\Deploy-Inventory-Dashboard.ps1 -TestMode
+```
+
+### Deploy-Full-Dashboard.ps1
+
+```powershell
+# Basic deployment (will prompt for confirmation)
+.\Deploy-Full-Dashboard.ps1
+
+# Custom config file
+.\Deploy-Full-Dashboard.ps1 -ConfigFile .\my-config.json
+
+# Skip workbook import
+.\Deploy-Full-Dashboard.ps1 -SkipWorkbooks
+
+# Test mode (dry run)
+.\Deploy-Full-Dashboard.ps1 -TestMode
+```
+
+---
+
+## 📊 Post-Deployment Steps
+
+### For Inventory Dashboard
+
+✅ **You're done!** Access your dashboard:
+
+1. Open [Azure Portal](https://portal.azure.com)
+2. Navigate to **Monitor** → **Workbooks**
+3. Find **"Adaptive Cloud - Inventory Dashboard"**
+
+---
+
+### For Full Dashboard
+
+⚠️ **Additional steps required** - the dashboard won't show data until agents are installed.
+
+#### Step 1: Verify Deployment
+
+```powershell
+# List deployed resources
+az resource list --resource-group rg-adaptive-cloud-dashboard --output table
+
+# Get workspace details
+az monitor log-analytics workspace show \
+  --resource-group rg-adaptive-cloud-dashboard \
+  --workspace-name law-adaptive-cloud
+```
+
+#### Step 2: Install Azure Monitor Agent
+
+**On Windows Arc machines:**
+```powershell
+az connectedmachine extension create \
+  --machine-name <machine-name> \
+  --resource-group <machine-resource-group> \
+  --name AzureMonitorWindowsAgent \
+  --publisher Microsoft.Azure.Monitor \
+  --type AzureMonitorWindowsAgent \
+  --location <location>
+```
+
+**On Linux Arc machines:**
+```powershell
+az connectedmachine extension create \
+  --machine-name <machine-name> \
+  --resource-group <machine-resource-group> \
+  --name AzureMonitorLinuxAgent \
+  --publisher Microsoft.Azure.Monitor \
+  --type AzureMonitorLinuxAgent \
+  --location <location>
+```
+
+**Batch install on multiple machines:**
+```powershell
+# Get list of Arc machines
+$machines = az connectedmachine list --query "[].{name:name, rg:resourceGroup, location:location}" -o json | ConvertFrom-Json
+
+# Install agent on each
+foreach ($machine in $machines) {
+    az connectedmachine extension create `
+      --machine-name $machine.name `
+      --resource-group $machine.rg `
+      --name AzureMonitorWindowsAgent `
+      --publisher Microsoft.Azure.Monitor `
+      --type AzureMonitorWindowsAgent `
+      --location $machine.location
+}
+```
+
+#### Step 3: Associate Data Collection Rules
+
+```powershell
+# Get your DCR ID (from deployment output or portal)
+$dcrId = "/subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Insights/dataCollectionRules/dcr-adaptive-cloud"
+
+# Associate with a machine
+$machineId = "/subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.HybridCompute/machines/<machine-name>"
+
+az monitor data-collection rule association create \
+  --name "configurationAccessEndpoint" \
+  --rule-id $dcrId \
+  --resource $machineId
+```
+
+#### Step 4: Verify Data Collection
+
+Wait 5-10 minutes, then check if data is flowing:
+
+```powershell
+# Query for heartbeat data
+az monitor log-analytics query \
+  --workspace <workspace-id> \
+  --analytics-query "Heartbeat | take 10" \
+  --timespan P1D
+```
+
+---
+
+## 🔄 Upgrade Path
+
+### From Inventory to Full Dashboard
+
+Already deployed the **Inventory Dashboard**? Upgrade to **Full Dashboard** anytime:
+
+```powershell
+# Simply run the Full Dashboard deployment
+.\Deploy-Full-Dashboard.ps1
+```
+
+Both dashboards will coexist in the same resource group. Use whichever fits your needs.
+
+---
+
+## ❓ Troubleshooting
+
+### "Azure CLI not found"
+
+Install Azure CLI:
+- Windows: https://aka.ms/installazurecliwindows
+- macOS: `brew install azure-cli`
+- Linux: https://docs.microsoft.com/cli/azure/install-azure-cli-linux
+
+### "Not logged in to Azure"
+
+```powershell
+az login
+az account set --subscription <your-subscription-id>
+```
+
+### "Configuration file not found"
+
+```powershell
+# Ensure you're in scripts/deployment directory
+cd c:\AI\adaptive-cloud-health-dashboard\scripts\deployment
+
+# Create config from template
+Copy-Item .\config.template.json .\config.json
+```
+
+### "Workbook deployment failed"
+
+Install the application-insights extension:
+```powershell
+az extension add --name application-insights
+```
+
+### "Permission denied"
+
+Ensure your account has:
+- **Contributor** or **Owner** role on the subscription
+- **Log Analytics Contributor** role (for Full Dashboard)
+
+Check your role assignments:
+```powershell
+az role assignment list --assignee <your-email> --output table
+```
+
+### "Data Collection Rule association failed"
+
+Verify the DCR exists:
+```powershell
+az monitor data-collection rule show --name dcr-adaptive-cloud --resource-group <rg>
+```
+
+Verify the agent is installed:
+```powershell
+az connectedmachine extension show \
+  --machine-name <machine> \
+  --resource-group <rg> \
+  --name AzureMonitorWindowsAgent
+```
+
+---
+
+## 🔐 Security Notes
+
+### Configuration File Security
+
+⚠️ **IMPORTANT**: The `config.json` file is excluded from Git (via `.gitignore`).
+
+**Never commit:**
+- Subscription IDs (if they're sensitive)
+- Customer-specific information
+- Access credentials
+
+**Safe to commit:**
+- `config.template.json` (template with placeholders)
+- Deployment scripts
+
+### RBAC Permissions
+
+The deployment scripts require:
+
+**Inventory Dashboard:**
+- `Reader` on subscriptions (to query Resource Graph)
+- `Contributor` on target resource group
+
+**Full Dashboard:**
+- All Inventory permissions PLUS:
+- `Log Analytics Contributor` (to create workspace)
+- `Monitoring Contributor` (to create DCRs)
+
+---
+
+## 💰 Cost Management
+
+### Inventory Dashboard
+
+**Cost: $0/month** ✅
+- Uses Azure Resource Graph (free)
+- No data ingestion costs
+- No storage costs
+
+### Full Dashboard
+
+**Costs apply** based on:
+
+1. **Log Analytics Ingestion** (~$2.30/GB)
+   - Arc server: ~10-50 MB/day per machine
+   - Azure Local cluster: ~100-500 MB/day per cluster
+   - AKS Arc cluster: ~50-200 MB/day per cluster
+
+2. **Data Retention** ($0.10/GB after 31 days)
+   - First 31 days included
+   - Additional days: $0.10/GB/month
+
+3. **Example Monthly Costs:**
+   - 10 Arc servers: $70-80/month
+   - 50 Arc servers: $350-400/month
+   - 200 Arc servers: $1,400-1,600/month
+
+**Cost optimization tips:**
+- Start with 30-day retention (free)
+- Use workspace commitment tiers for >100GB/day
+- Monitor ingestion in Cost Management
+- Archive old data to Azure Storage ($0.01/GB)
+
+---
+
+## 📖 Additional Resources
+
+- [Quick Start Guide](../../QUICKSTART.md)
+- [Main README](../../README.md)
+- [Azure Monitor Pricing](https://azure.microsoft.com/pricing/details/monitor/)
+- [Azure Resource Graph](https://docs.microsoft.com/azure/governance/resource-graph/)
+- [Data Collection Rules](https://docs.microsoft.com/azure/azure-monitor/agents/data-collection-rule-overview)
+
+---
+
+## 💬 Support
+
+For issues or questions:
+- 🐛 Report issues: [GitHub Issues](https://github.com/smitzlroy/adaptive-cloud-health-dashboard/issues)
+- 📖 Documentation: [Microsoft Learn](https://learn.microsoft.com/azure/azure-monitor/)
+- 💡 Ideas: Create a pull request
+
+---
+
+**Happy Deploying! 🚀**

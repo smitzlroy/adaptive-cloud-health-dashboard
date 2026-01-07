@@ -1,6 +1,7 @@
 {
+  "_instructions": "1. Copy this file to 'config.json' | 2. Replace YOUR-SUBSCRIPTION-ID-HERE with your Azure subscription ID | 3. Run: .\\scripts\\deployment\\Deploy-Dashboard.ps1",
   "subscriptions": [
-    "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+    "YOUR-SUBSCRIPTION-ID-HERE"
   ],
   "resourceGroup": "rg-adaptive-cloud-dashboard",
   "location": "eastus",

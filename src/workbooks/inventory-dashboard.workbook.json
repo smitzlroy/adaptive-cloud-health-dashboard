@@ -1,0 +1,480 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 1,
+      "content": {
+        "json": "# 📦 Adaptive Cloud Inventory Dashboard\n\n## Read-Only Resource Inventory - Azure Local, AKS Arc & Arc-Enabled Services\n\n**✅ No Agents Required | ✅ No Additional Costs | ✅ Uses Azure Resource Graph Only**\n\nThis dashboard provides a comprehensive inventory view of your Adaptive Cloud resources using Azure's built-in Resource Graph API. No data collection agents or Log Analytics workspace required.\n\n---"
+      },
+      "name": "text - title"
+    },
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "subscription-param",
+            "version": "KqlParameterItem/1.0",
+            "name": "Subscriptions",
+            "type": 6,
+            "isRequired": true,
+            "multiSelect": true,
+            "quote": "'",
+            "delimiter": ",",
+            "typeSettings": {
+              "additionalResourceOptions": [
+                "value::all"
+              ],
+              "includeAll": true,
+              "showDefault": false
+            },
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "defaultValue": "value::all",
+            "value": [
+              "value::all"
+            ],
+            "label": "Subscriptions"
+          },
+          {
+            "id": "resourcegroup-param",
+            "version": "KqlParameterItem/1.0",
+            "name": "ResourceGroups",
+            "type": 2,
+            "isRequired": false,
+            "multiSelect": true,
+            "quote": "'",
+            "delimiter": ",",
+            "query": "Resources\r\n| where subscriptionId in ({Subscriptions})\r\n| summarize by resourceGroup\r\n| order by resourceGroup asc\r\n| project value = resourceGroup, label = resourceGroup",
+            "crossComponentResources": [
+              "value::all"
+            ],
+            "typeSettings": {
+              "additionalResourceOptions": [
+                "value::all"
+              ],
+              "showDefault": false
+            },
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "defaultValue": "value::all",
+            "queryType": 1,
+            "resourceType": "microsoft.resourcegraph/resources",
+            "value": [
+              "value::all"
+            ],
+            "label": "Resource Groups"
+          }
+        ],
+        "style": "pills",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources"
+      },
+      "name": "parameters - global"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## 📊 Resource Summary"
+      },
+      "name": "text - summary header"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where subscriptionId in ({Subscriptions})\r\n| where type in (\"microsoft.azurestackhci/clusters\", \"microsoft.kubernetes/connectedclusters\", \"microsoft.hybridcompute/machines\")\r\n| extend ResourceType = case(\r\n    type =~ \"microsoft.azurestackhci/clusters\", \"Azure Local Clusters\",\r\n    type =~ \"microsoft.kubernetes/connectedclusters\", \"AKS Arc Clusters\",\r\n    type =~ \"microsoft.hybridcompute/machines\", \"Arc-Enabled Servers\",\r\n    \"Other\"\r\n)\r\n| summarize Count = count() by ResourceType\r\n| project ResourceType, Count",
+        "size": 4,
+        "title": "Resource Count by Type",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": [
+          "value::all"
+        ],
+        "visualization": "tiles",
+        "tileSettings": {
+          "titleContent": {
+            "columnMatch": "ResourceType",
+            "formatter": 1
+          },
+          "leftContent": {
+            "columnMatch": "Count",
+            "formatter": 12,
+            "formatOptions": {
+              "palette": "blue"
+            }
+          },
+          "showBorder": true
+        }
+      },
+      "customWidth": "50",
+      "name": "query - resource count"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where subscriptionId in ({Subscriptions})\r\n| where type in (\"microsoft.azurestackhci/clusters\", \"microsoft.kubernetes/connectedclusters\", \"microsoft.hybridcompute/machines\")\r\n| summarize Count = count() by subscriptionId\r\n| join kind=leftouter (ResourceContainers | where type == 'microsoft.resources/subscriptions' | project subscriptionId, SubscriptionName = name) on subscriptionId\r\n| project Subscription = coalesce(SubscriptionName, subscriptionId), Count\r\n| order by Count desc",
+        "size": 3,
+        "title": "Resources by Subscription",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": [
+          "value::all"
+        ],
+        "visualization": "piechart"
+      },
+      "customWidth": "50",
+      "name": "query - by subscription"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where subscriptionId in ({Subscriptions})\r\n| where type in (\"microsoft.azurestackhci/clusters\", \"microsoft.kubernetes/connectedclusters\", \"microsoft.hybridcompute/machines\")\r\n| summarize Count = count() by location\r\n| top 10 by Count desc\r\n| project Location = location, Count",
+        "size": 0,
+        "title": "Top Locations",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": [
+          "value::all"
+        ],
+        "visualization": "barchart"
+      },
+      "customWidth": "50",
+      "name": "query - locations"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where subscriptionId in ({Subscriptions})\r\n| where type in (\"microsoft.azurestackhci/clusters\", \"microsoft.kubernetes/connectedclusters\", \"microsoft.hybridcompute/machines\")\r\n| extend CreatedDate = tostring(properties.provisioningTimestamp)\r\n| extend MonthCreated = format_datetime(todatetime(CreatedDate), 'yyyy-MM')\r\n| where isnotempty(MonthCreated)\r\n| summarize Count = count() by MonthCreated\r\n| order by MonthCreated desc\r\n| take 12\r\n| project Month = MonthCreated, Count",
+        "size": 0,
+        "title": "Resources Created by Month (Last 12 Months)",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": [
+          "value::all"
+        ],
+        "visualization": "timechart"
+      },
+      "customWidth": "50",
+      "name": "query - created trend"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "---\n## 🖥️ Azure Local (Stack HCI) Inventory"
+      },
+      "name": "text - azure local header"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type =~ \"microsoft.azurestackhci/clusters\"\r\n| where subscriptionId in ({Subscriptions})\r\n| extend \r\n    ClusterName = name,\r\n    ResourceGroup = resourceGroup,\r\n    Location = location,\r\n    Status = tostring(properties.status),\r\n    ProvisioningState = tostring(properties.provisioningState),\r\n    CloudId = tostring(properties.cloudId),\r\n    NodeCount = array_length(properties.reportedProperties.clusterNodes),\r\n    AzureStackVersion = tostring(properties.reportedProperties.clusterVersion),\r\n    LastSync = tostring(properties.lastSync)\r\n| project ClusterName, ResourceGroup, Location, Status, ProvisioningState, NodeCount, AzureStackVersion, LastSync, CloudId\r\n| order by ClusterName asc",
+        "size": 0,
+        "title": "Azure Local Clusters",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": [
+          "value::all"
+        ],
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "Status",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "icons",
+                "thresholdsGrid": [
+                  {
+                    "operator": "==",
+                    "thresholdValue": "ConnectedRecently",
+                    "representation": "success",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Connected",
+                    "representation": "success",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "Default",
+                    "thresholdValue": null,
+                    "representation": "warning",
+                    "text": "{0}{1}"
+                  }
+                ]
+              }
+            },
+            {
+              "columnMatch": "ProvisioningState",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "icons",
+                "thresholdsGrid": [
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Succeeded",
+                    "representation": "success",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Failed",
+                    "representation": "failed",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "Default",
+                    "thresholdValue": null,
+                    "representation": "info",
+                    "text": "{0}{1}"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "name": "query - azure local inventory"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "---\n## ☸️ AKS Arc Clusters"
+      },
+      "name": "text - aks arc header"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type =~ \"microsoft.kubernetes/connectedclusters\"\r\n| where subscriptionId in ({Subscriptions})\r\n| extend \r\n    ClusterName = name,\r\n    ResourceGroup = resourceGroup,\r\n    Location = location,\r\n    ConnectivityStatus = tostring(properties.connectivityStatus),\r\n    KubernetesVersion = tostring(properties.kubernetesVersion),\r\n    Distribution = tostring(properties.distribution),\r\n    Infrastructure = tostring(properties.infrastructure),\r\n    TotalNodeCount = toint(properties.totalNodeCount),\r\n    TotalCoreCount = toint(properties.totalCoreCount),\r\n    AgentVersion = tostring(properties.agentVersion),\r\n    LastConnectivityTime = tostring(properties.lastConnectivityTime)\r\n| project ClusterName, ResourceGroup, Location, ConnectivityStatus, KubernetesVersion, Distribution, TotalNodeCount, TotalCoreCount, AgentVersion, LastConnectivityTime\r\n| order by ClusterName asc",
+        "size": 0,
+        "title": "AKS Arc Clusters",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": [
+          "value::all"
+        ],
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "ConnectivityStatus",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "icons",
+                "thresholdsGrid": [
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Connected",
+                    "representation": "success",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Offline",
+                    "representation": "failed",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "Default",
+                    "thresholdValue": null,
+                    "representation": "warning",
+                    "text": "{0}{1}"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "name": "query - aks arc inventory"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "---\n## 🖥️ Arc-Enabled Servers"
+      },
+      "name": "text - arc servers header"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type =~ \"microsoft.hybridcompute/machines\"\r\n| where subscriptionId in ({Subscriptions})\r\n| extend \r\n    ServerName = name,\r\n    ResourceGroup = resourceGroup,\r\n    Location = location,\r\n    Status = tostring(properties.status),\r\n    OSType = tostring(properties.osType),\r\n    OSName = tostring(properties.osName),\r\n    OSVersion = tostring(properties.osVersion),\r\n    AgentVersion = tostring(properties.agentVersion),\r\n    LastStatusChange = tostring(properties.lastStatusChange),\r\n    CloudMetadata = tostring(properties.cloudMetadata.provider)\r\n| project ServerName, ResourceGroup, Location, Status, OSType, OSName, OSVersion, AgentVersion, CloudMetadata, LastStatusChange\r\n| order by ServerName asc",
+        "size": 0,
+        "title": "Arc-Enabled Servers",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": [
+          "value::all"
+        ],
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "Status",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "icons",
+                "thresholdsGrid": [
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Connected",
+                    "representation": "success",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Disconnected",
+                    "representation": "failed",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "Default",
+                    "thresholdValue": null,
+                    "representation": "warning",
+                    "text": "{0}{1}"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "name": "query - arc servers inventory"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "---\n## 🛡️ Azure Policy Compliance"
+      },
+      "name": "text - compliance header"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "PolicyResources\r\n| where type =~ \"microsoft.policyinsights/policystates\"\r\n| where subscriptionId in ({Subscriptions})\r\n| extend ComplianceState = tostring(properties.complianceState)\r\n| summarize \r\n    Compliant = countif(ComplianceState == \"Compliant\"),\r\n    NonCompliant = countif(ComplianceState == \"NonCompliant\"),\r\n    Total = count()\r\n| extend CompliancePercentage = round((todouble(Compliant) / todouble(Total)) * 100, 2)\r\n| project CompliancePercentage, Compliant, NonCompliant, Total",
+        "size": 4,
+        "title": "Overall Compliance Score",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": [
+          "value::all"
+        ],
+        "visualization": "tiles",
+        "tileSettings": {
+          "titleContent": {
+            "columnMatch": "CompliancePercentage",
+            "formatter": 1,
+            "formatOptions": {
+              "compositeBarSettings": {
+                "labelText": "Compliance %",
+                "columnSettings": []
+              }
+            }
+          },
+          "leftContent": {
+            "columnMatch": "CompliancePercentage",
+            "formatter": 12,
+            "formatOptions": {
+              "palette": "greenRed",
+              "compositeBarSettings": {
+                "labelText": "",
+                "columnSettings": []
+              }
+            },
+            "numberFormat": {
+              "unit": 1,
+              "options": {
+                "style": "decimal",
+                "maximumFractionDigits": 1
+              }
+            }
+          },
+          "secondaryContent": {
+            "columnMatch": "Compliant",
+            "formatter": 1
+          },
+          "showBorder": true
+        }
+      },
+      "customWidth": "50",
+      "name": "query - compliance score"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "PolicyResources\r\n| where type =~ \"microsoft.policyinsights/policystates\"\r\n| where subscriptionId in ({Subscriptions})\r\n| extend \r\n    PolicyName = tostring(properties.policyDefinitionName),\r\n    ComplianceState = tostring(properties.complianceState),\r\n    ResourceType = tostring(properties.resourceType)\r\n| summarize Count = count() by PolicyName, ComplianceState\r\n| order by Count desc\r\n| take 10",
+        "size": 0,
+        "title": "Top 10 Policy Violations",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": [
+          "value::all"
+        ],
+        "visualization": "barchart"
+      },
+      "customWidth": "50",
+      "name": "query - top violations"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "---\n## 🏷️ Resource Tags Analysis"
+      },
+      "name": "text - tags header"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where subscriptionId in ({Subscriptions})\r\n| where type in (\"microsoft.azurestackhci/clusters\", \"microsoft.kubernetes/connectedclusters\", \"microsoft.hybridcompute/machines\")\r\n| mvexpand tags\r\n| extend TagKey = tostring(bag_keys(tags)[0])\r\n| extend TagValue = tostring(tags[TagKey])\r\n| where isnotempty(TagKey)\r\n| summarize Count = count() by TagKey\r\n| order by Count desc\r\n| take 10\r\n| project Tag = TagKey, Count",
+        "size": 0,
+        "title": "Most Used Tags",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": [
+          "value::all"
+        ],
+        "visualization": "barchart"
+      },
+      "customWidth": "50",
+      "name": "query - tags usage"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where subscriptionId in ({Subscriptions})\r\n| where type in (\"microsoft.azurestackhci/clusters\", \"microsoft.kubernetes/connectedclusters\", \"microsoft.hybridcompute/machines\")\r\n| extend HasTags = iff(array_length(todynamic(tags)) > 0, \"Tagged\", \"Untagged\")\r\n| summarize Count = count() by HasTags",
+        "size": 3,
+        "title": "Tagged vs Untagged Resources",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": [
+          "value::all"
+        ],
+        "visualization": "piechart"
+      },
+      "customWidth": "50",
+      "name": "query - tagged untagged"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "---\n\n## 💡 Want More? Upgrade to Full Dashboard\n\nThis **Inventory Dashboard** provides read-only resource information using Azure Resource Graph (free).\n\nTo get **performance metrics, health monitoring, and predictive analytics**, upgrade to the **Full Dashboard**:\n\n- ✅ CPU, Memory, Disk utilization metrics\n- ✅ Real-time health status and alerts\n- ✅ Performance trends and capacity forecasting\n- ✅ Detailed system logs and events\n\n**Requirements for Full Dashboard:**\n- Azure Monitor Agent on monitored resources\n- Log Analytics workspace (costs apply based on data ingestion)\n\n📚 See [README.md](https://github.com/smitzlroy/adaptive-cloud-health-dashboard) for upgrade instructions."
+      },
+      "name": "text - upgrade info"
+    }
+  ],
+  "fallbackResourceIds": [],
+  "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}
