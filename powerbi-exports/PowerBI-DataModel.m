@@ -1,17 +1,17 @@
 // ===================================================
 // Adaptive Cloud - Power BI Data Model
-// Auto-generated: 2026-01-07 15:25:29
+// Auto-generated: 2026-01-07 15:34:05
 // ===================================================
 
 let
     // Configuration
-    SourceFolder = "",
+    SourceFolder = "C:\AI\adaptive-cloud-health-dashboard\powerbi-exports",
     
     // Helper function to load CSV files
     LoadCsv = (fileName as text, tableName as text) =>
         let
             Source = Csv.Document(
-                File.Contents(SourceFolder & "\\" & fileName),
+                File.Contents(SourceFolder & "\" & fileName),
                 [Delimiter=",", Columns=null, Encoding=65001, QuoteStyle=QuoteStyle.None]
             ),
             PromotedHeaders = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),

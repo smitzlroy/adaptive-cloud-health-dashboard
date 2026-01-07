@@ -1,0 +1,307 @@
+# Adaptive Cloud Dashboard - Power BI Complete Setup
+# Copy and paste these DAX measures into Power BI
+
+## STEP 1: Create these DAX Measures
+## In Power BI: Home → New Measure, then paste each formula
+
+## ============================================
+## RESOURCE SUMMARY MEASURES
+## ============================================
+
+Total Resources = COUNTROWS('01-resource-summary')
+
+Azure Local Count = 
+CALCULATE(
+    COUNTROWS('01-resource-summary'),
+    '01-resource-summary'[type] = "microsoft.azurestackhci/clusters"
+)
+
+AKS Arc Count = 
+CALCULATE(
+    COUNTROWS('01-resource-summary'),
+    '01-resource-summary'[type] = "microsoft.kubernetes/connectedclusters"
+)
+
+Arc Servers Count = 
+CALCULATE(
+    COUNTROWS('01-resource-summary'),
+    '01-resource-summary'[type] = "microsoft.hybridcompute/machines"
+)
+
+## ============================================
+## HARDWARE CAPACITY MEASURES
+## ============================================
+
+Total CPU Cores = 
+SUMX(
+    '02-hardware-capacity',
+    VALUE('02-hardware-capacity'[CPUCores])
+)
+
+Total Memory TB = 
+SUMX(
+    '02-hardware-capacity',
+    VALUE('02-hardware-capacity'[MemoryTB])
+)
+
+Total Nodes = COUNTROWS('02-hardware-capacity')
+
+Total Clusters = DISTINCTCOUNT('02-hardware-capacity'[ClusterName])
+
+## ============================================
+## CONNECTIVITY & HEALTH MEASURES
+## ============================================
+
+Healthy Resources = 
+CALCULATE(
+    COUNTROWS('03-connectivity-status'),
+    '03-connectivity-status'[HealthStatus] = "Healthy"
+)
+
+Warning Resources = 
+CALCULATE(
+    COUNTROWS('03-connectivity-status'),
+    '03-connectivity-status'[HealthStatus] = "Warning"
+)
+
+Critical Resources = 
+CALCULATE(
+    COUNTROWS('03-connectivity-status'),
+    '03-connectivity-status'[HealthStatus] = "Critical"
+)
+
+Health Score % = 
+DIVIDE(
+    [Healthy Resources],
+    COUNTROWS('03-connectivity-status'),
+    0
+) * 100
+
+## ============================================
+## GOVERNANCE TAG COMPLIANCE MEASURES
+## ============================================
+
+Resources with Owner Tag = 
+CALCULATE(
+    COUNTROWS('06-governance-tags'),
+    '06-governance-tags'[HasOwnerTag] = "True"
+)
+
+Resources with Environment Tag = 
+CALCULATE(
+    COUNTROWS('06-governance-tags'),
+    '06-governance-tags'[HasEnvironmentTag] = "True"
+)
+
+Resources with CostCenter Tag = 
+CALCULATE(
+    COUNTROWS('06-governance-tags'),
+    '06-governance-tags'[HasCostCenterTag] = "True"
+)
+
+Untagged Resources = 
+CALCULATE(
+    COUNTROWS('06-governance-tags'),
+    '06-governance-tags'[IsUntagged] = "True"
+)
+
+Tag Compliance % = 
+DIVIDE(
+    [Resources with Owner Tag],
+    COUNTROWS('06-governance-tags'),
+    0
+) * 100
+
+## ============================================
+## POLICY COMPLIANCE MEASURES
+## ============================================
+
+Compliant Resources = 
+CALCULATE(
+    COUNTROWS('07-policy-compliance'),
+    '07-policy-compliance'[IsCompliant] = "True"
+)
+
+Non-Compliant Resources = 
+CALCULATE(
+    COUNTROWS('07-policy-compliance'),
+    '07-policy-compliance'[IsCompliant] = "False"
+)
+
+Compliance Rate % = 
+DIVIDE(
+    [Compliant Resources],
+    COUNTROWS('07-policy-compliance'),
+    0
+) * 100
+
+## ============================================
+## SECURITY POSTURE MEASURES
+## ============================================
+
+IMDS Enabled Count = 
+CALCULATE(
+    COUNTROWS('05-security-posture'),
+    NOT(ISBLANK('05-security-posture'[ImdsAttestation]))
+)
+
+Entra ID Integrated = 
+CALCULATE(
+    COUNTROWS('05-security-posture'),
+    '05-security-posture'[HasEntraIntegration] = "True"
+)
+
+## ============================================
+## ARC EXTENSIONS MEASURES
+## ============================================
+
+Total Extensions = COUNTROWS('08-arc-extensions')
+
+Succeeded Extensions = 
+CALCULATE(
+    COUNTROWS('08-arc-extensions'),
+    '08-arc-extensions'[Status] = "Succeeded"
+)
+
+Failed Extensions = 
+CALCULATE(
+    COUNTROWS('08-arc-extensions'),
+    '08-arc-extensions'[Status] = "Failed"
+)
+
+Updating Extensions = 
+CALCULATE(
+    COUNTROWS('08-arc-extensions'),
+    '08-arc-extensions'[Status] = "Updating"
+)
+
+Extension Success Rate % = 
+DIVIDE(
+    [Succeeded Extensions],
+    [Total Extensions],
+    0
+) * 100
+
+## ============================================
+## COST OPTIMIZATION - ZOMBIE RESOURCES
+## ============================================
+
+Zombie 30-60 Days = 
+CALCULATE(
+    COUNTROWS('12-zombie-resources'),
+    '12-zombie-resources'[ZombieCategory] = "30-60 days (Review)"
+)
+
+Zombie 60-90 Days = 
+CALCULATE(
+    COUNTROWS('12-zombie-resources'),
+    '12-zombie-resources'[ZombieCategory] = "60-90 days (Delete Soon)"
+)
+
+Zombie 90+ Days = 
+CALCULATE(
+    COUNTROWS('12-zombie-resources'),
+    '12-zombie-resources'[ZombieCategory] = "90+ days (Delete Now)"
+)
+
+Total Zombie Resources = 
+[Zombie 30-60 Days] + [Zombie 60-90 Days] + [Zombie 90+ Days]
+
+## ============================================
+## COST OPTIMIZATION - LOCATION
+## ============================================
+
+Resources in Expensive Regions = 
+CALCULATE(
+    COUNTROWS('13-location-distribution'),
+    '13-location-distribution'[IsExpensiveRegion] = "True"
+)
+
+Resources in Standard Regions = 
+CALCULATE(
+    COUNTROWS('13-location-distribution'),
+    '13-location-distribution'[IsExpensiveRegion] = "False"
+)
+
+Expensive Region Cost Impact % = 
+DIVIDE(
+    [Resources in Expensive Regions],
+    COUNTROWS('13-location-distribution'),
+    0
+) * 100
+
+## ============================================
+## CONFIGURATION MEASURES
+## ============================================
+
+Windows Server Subscription Enabled = 
+CALCULATE(
+    COUNTROWS('04-configuration'),
+    '04-configuration'[WindowsServerSubscription] = "True"
+)
+
+Software Assurance Enabled = 
+CALCULATE(
+    COUNTROWS('04-configuration'),
+    '04-configuration'[SoftwareAssurance] = "True"
+)
+
+## ============================================
+## RESOURCE LIFECYCLE MEASURES
+## ============================================
+
+Resources < 30 Days Old = 
+CALCULATE(
+    COUNTROWS('11-resource-lifecycle'),
+    '11-resource-lifecycle'[AgeCategory] = "< 30 days"
+)
+
+Resources 30-90 Days Old = 
+CALCULATE(
+    COUNTROWS('11-resource-lifecycle'),
+    '11-resource-lifecycle'[AgeCategory] = "30-90 days"
+)
+
+Resources 90-180 Days Old = 
+CALCULATE(
+    COUNTROWS('11-resource-lifecycle'),
+    '11-resource-lifecycle'[AgeCategory] = "90-180 days"
+)
+
+Resources > 365 Days Old = 
+CALCULATE(
+    COUNTROWS('11-resource-lifecycle'),
+    '11-resource-lifecycle'[AgeCategory] = "> 365 days"
+)
+
+## ============================================
+## RIGHT-SIZING MEASURES
+## ============================================
+
+Very Small Servers = 
+CALCULATE(
+    COUNTROWS('14-rightsizing'),
+    '14-rightsizing'[SizeCategory] = "Very Small"
+)
+
+Small Servers = 
+CALCULATE(
+    COUNTROWS('14-rightsizing'),
+    '14-rightsizing'[SizeCategory] = "Small"
+)
+
+Medium Servers = 
+CALCULATE(
+    COUNTROWS('14-rightsizing'),
+    '14-rightsizing'[SizeCategory] = "Medium"
+)
+
+Large Servers = 
+CALCULATE(
+    COUNTROWS('14-rightsizing'),
+    '14-rightsizing'[SizeCategory] = "Large"
+)
+
+## ============================================
+## END OF MEASURES
+## ============================================
