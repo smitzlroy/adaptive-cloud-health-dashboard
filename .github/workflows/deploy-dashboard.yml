@@ -1,0 +1,104 @@
+name: Deploy Dashboard to Azure
+
+on:
+  workflow_dispatch:
+    inputs:
+      subscription_id:
+        description: 'Azure Subscription ID'
+        required: true
+      resource_group:
+        description: 'Resource Group Name'
+        required: true
+        default: 'rg-adaptive-cloud-dashboard'
+      location:
+        description: 'Azure Region'
+        required: true
+        default: 'eastus'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Set Azure Subscription
+      run: |
+        az account set --subscription ${{ github.event.inputs.subscription_id }}
+
+    - name: Create Resource Group
+      run: |
+        az group create \
+          --name ${{ github.event.inputs.resource_group }} \
+          --location ${{ github.event.inputs.location }}
+
+    - name: Generate Workspace Name
+      id: workspace
+      run: |
+        WORKSPACE_NAME="law-adaptive-cloud-$RANDOM"
+        echo "name=$WORKSPACE_NAME" >> $GITHUB_OUTPUT
+
+    - name: Deploy Log Analytics Workspace
+      run: |
+        az monitor log-analytics workspace create \
+          --resource-group ${{ github.event.inputs.resource_group }} \
+          --workspace-name ${{ steps.workspace.outputs.name }} \
+          --location ${{ github.event.inputs.location }} \
+          --sku PerGB2018 \
+          --retention-time 90
+
+    - name: Get Workspace ID
+      id: workspace-id
+      run: |
+        WORKSPACE_ID=$(az monitor log-analytics workspace show \
+          --resource-group ${{ github.event.inputs.resource_group }} \
+          --workspace-name ${{ steps.workspace.outputs.name }} \
+          --query customerId -o tsv)
+        echo "id=$WORKSPACE_ID" >> $GITHUB_OUTPUT
+
+    - name: Import Workbooks
+      run: |
+        for file in src/workbooks/*.json; do
+          if [ -f "$file" ]; then
+            WORKBOOK_NAME=$(basename "$file" .workbook.json)
+            WORKBOOK_ID=$(uuidgen)
+            
+            echo "Importing workbook: $WORKBOOK_NAME"
+            
+            az resource create \
+              --resource-group ${{ github.event.inputs.resource_group }} \
+              --resource-type "Microsoft.Insights/workbooks" \
+              --name "$WORKBOOK_ID" \
+              --properties "{
+                \"displayName\": \"$WORKBOOK_NAME\",
+                \"serializedData\": $(cat $file | jq -c '.'),
+                \"category\": \"Adaptive-Cloud\",
+                \"sourceId\": \"azure monitor\"
+              }" \
+              --location ${{ github.event.inputs.location }} || echo "Failed to import $WORKBOOK_NAME"
+          fi
+        done
+
+    - name: Deployment Summary
+      run: |
+        echo "## Deployment Successful! 🎉" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Resource Group**: ${{ github.event.inputs.resource_group }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Location**: ${{ github.event.inputs.location }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Workspace**: ${{ steps.workspace.outputs.name }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Workspace ID**: ${{ steps.workspace-id.outputs.id }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+        echo "1. Configure data collection on your clusters" >> $GITHUB_STEP_SUMMARY
+        echo "2. Access dashboards in [Azure Portal](https://portal.azure.com/#view/Microsoft_Azure_Monitoring/AzureMonitoringBrowseBlade/~/workbooks)" >> $GITHUB_STEP_SUMMARY
+
+    - name: Azure Logout
+      if: always()
+      run: |
+        az logout

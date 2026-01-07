@@ -1,0 +1,80 @@
+# Example: Custom Health Query
+# This example shows how to create a custom health score based on specific business requirements
+
+let subscriptions = dynamic({Subscriptions});
+let timeRange = {TimeRange:range};
+
+// Define custom thresholds for your organization
+let cpuCriticalThreshold = 95;
+let cpuWarningThreshold = 80;
+let memoryCriticalThreshold = 98;
+let memoryWarningThreshold = 85;
+let diskCriticalThreshold = 95;
+let diskWarningThreshold = 80;
+
+// Collect performance metrics
+let perfMetrics = InsightsMetrics
+| where TimeGenerated > ago(timeRange)
+| where _SubscriptionId in (subscriptions) or array_length(subscriptions) == 0
+| where Namespace in ("Processor", "Memory", "LogicalDisk")
+| extend 
+    MetricType = case(
+        Namespace == "Processor" and Name == "UtilizationPercentage", "CPU",
+        Namespace == "Memory" and Name == "AvailableMB", "Memory",
+        Namespace == "LogicalDisk" and Name == "FreeSpacePercentage", "Disk",
+        "Other"
+    )
+| where MetricType != "Other"
+| extend 
+    Value = case(
+        MetricType == "CPU", Val,
+        MetricType == "Memory", 100 - (Val / 131072 * 100), // Assuming 128GB RAM
+        MetricType == "Disk", 100 - Val,
+        Val
+    )
+| summarize AvgValue = avg(Value), MaxValue = max(Value) by Computer, MetricType, _ResourceId;
+
+// Calculate custom health scores with weighted components
+perfMetrics
+| summarize 
+    CPUAvg = avgif(AvgValue, MetricType == "CPU"),
+    CPUMax = maxif(MaxValue, MetricType == "CPU"),
+    MemoryAvg = avgif(AvgValue, MetricType == "Memory"),
+    MemoryMax = maxif(MaxValue, MetricType == "Memory"),
+    DiskAvg = avgif(AvgValue, MetricType == "Disk"),
+    DiskMax = maxif(MaxValue, MetricType == "Disk")
+    by Computer, _ResourceId
+| extend 
+    // Custom weighted health calculation (CPU: 40%, Memory: 35%, Disk: 25%)
+    CPUScore = case(
+        CPUMax > cpuCriticalThreshold, 0,
+        CPUAvg > cpuWarningThreshold, 50,
+        100 - CPUAvg
+    ) * 0.4,
+    MemoryScore = case(
+        MemoryMax > memoryCriticalThreshold, 0,
+        MemoryAvg > memoryWarningThreshold, 50,
+        100 - MemoryAvg
+    ) * 0.35,
+    DiskScore = case(
+        DiskMax > diskCriticalThreshold, 0,
+        DiskAvg > diskWarningThreshold, 50,
+        100 - DiskAvg
+    ) * 0.25
+| extend 
+    CustomHealthScore = round(CPUScore + MemoryScore + DiskScore, 2),
+    HealthCategory = case(
+        (CPUScore + MemoryScore + DiskScore) >= 90, "Excellent",
+        (CPUScore + MemoryScore + DiskScore) >= 75, "Good",
+        (CPUScore + MemoryScore + DiskScore) >= 60, "Fair",
+        (CPUScore + MemoryScore + DiskScore) >= 40, "Poor",
+        "Critical"
+    )
+| project 
+    Computer,
+    CustomHealthScore,
+    HealthCategory,
+    CPUAvg = round(CPUAvg, 2),
+    MemoryAvg = round(MemoryAvg, 2),
+    DiskAvg = round(DiskAvg, 2)
+| order by CustomHealthScore asc

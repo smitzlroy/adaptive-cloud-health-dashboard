@@ -1,0 +1,41 @@
+// Global Inventory Query - Azure Local Clusters
+// This query retrieves inventory of all Azure Local (Azure Stack HCI) clusters
+
+let subscriptions = dynamic({Subscriptions});
+let timeRange = {TimeRange:range};
+
+arg("").Resources
+| where type =~ "microsoft.azurestackhci/clusters"
+| where subscriptionId in (subscriptions) or array_length(subscriptions) == 0
+| extend 
+    ClusterName = name,
+    ResourceGroup = resourceGroup,
+    Location = location,
+    SubscriptionId = subscriptionId,
+    Status = properties.status,
+    ProvisioningState = properties.provisioningState,
+    CloudManagementEnabled = properties.cloudManagementEndpoint != "",
+    NodeCount = array_length(properties.reportedProperties.clusterNodes),
+    LastUpdated = properties.lastSync
+| join kind=leftouter (
+    Resources
+    | where type =~ "microsoft.azurestackhci/clusters"
+    | where subscriptionId in (subscriptions) or array_length(subscriptions) == 0
+    | project ClusterResourceId = id, tags
+) on $left.id == $right.ClusterResourceId
+| project 
+    ClusterName,
+    ResourceGroup,
+    Location,
+    SubscriptionId,
+    Status,
+    ProvisioningState,
+    CloudManagementEnabled,
+    NodeCount,
+    LastUpdated,
+    Environment = tostring(tags["environment"]),
+    Owner = tostring(tags["owner"]),
+    CostCenter = tostring(tags["costcenter"]),
+    Tags = tags,
+    ResourceId = id
+| order by ClusterName asc

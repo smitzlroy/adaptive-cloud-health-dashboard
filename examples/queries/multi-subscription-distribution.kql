@@ -1,0 +1,39 @@
+# Example: Multi-Subscription Resource Distribution
+# Shows how to aggregate data across multiple subscriptions and visualize distribution
+
+let subscriptions = dynamic({Subscriptions});
+
+// Get all Adaptive Cloud resources across subscriptions
+arg("").Resources
+| where type in (
+    "microsoft.azurestackhci/clusters",
+    "microsoft.kubernetes/connectedclusters",
+    "microsoft.hybridcompute/machines"
+)
+| where subscriptionId in (subscriptions) or array_length(subscriptions) == 0
+| extend 
+    ResourceType = case(
+        type =~ "microsoft.azurestackhci/clusters", "Azure Local",
+        type =~ "microsoft.kubernetes/connectedclusters", "AKS Arc",
+        type =~ "microsoft.hybridcompute/machines", "Arc Server",
+        "Other"
+    )
+| join kind=leftouter (
+    arg("").ResourceContainers
+    | where type =~ "microsoft.resources/subscriptions"
+    | project subscriptionId, SubscriptionName = name
+) on subscriptionId
+| summarize 
+    ResourceCount = count(),
+    ResourceGroups = dcount(resourceGroup),
+    Locations = make_set(location)
+    by SubscriptionName, ResourceType
+| extend LocationCount = array_length(Locations)
+| project 
+    SubscriptionName,
+    ResourceType,
+    ResourceCount,
+    ResourceGroups,
+    LocationCount,
+    Locations = tostring(Locations)
+| order by SubscriptionName asc, ResourceCount desc

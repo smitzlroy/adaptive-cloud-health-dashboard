@@ -1,0 +1,71 @@
+// Health Status Query - Azure Local Clusters
+// Calculates health score based on multiple metrics
+
+let subscriptions = dynamic({Subscriptions});
+let timeRange = {TimeRange:range};
+
+// Get cluster health from heartbeats
+let clusterHealth = InsightsMetrics
+| where TimeGenerated > ago(timeRange)
+| where _SubscriptionId in (subscriptions) or array_length(subscriptions) == 0
+| where Namespace == "ClusterHealth" or Namespace == "Computer"
+| summarize 
+    LastHeartbeat = max(TimeGenerated),
+    AvgCpuPercent = avg(iff(Name == "UtilizationPercentage" and Namespace == "Processor", Val, double(null))),
+    AvgMemoryPercent = avg(iff(Name == "AvailableMB", 100 - (Val / 128000 * 100), double(null))),
+    AvgDiskPercent = avg(iff(Name == "FreeSpacePercentage", 100 - Val, double(null)))
+    by Computer, _ResourceId
+| extend 
+    HealthStatus = case(
+        LastHeartbeat < ago(10m), "Critical",
+        LastHeartbeat < ago(5m), "Warning",
+        "Healthy"
+    ),
+    CpuHealth = case(
+        AvgCpuPercent > 90, 0,
+        AvgCpuPercent > 80, 50,
+        AvgCpuPercent > 70, 75,
+        100
+    ),
+    MemoryHealth = case(
+        AvgMemoryPercent > 95, 0,
+        AvgMemoryPercent > 90, 50,
+        AvgMemoryPercent > 80, 75,
+        100
+    ),
+    DiskHealth = case(
+        AvgDiskPercent > 90, 0,
+        AvgDiskPercent > 85, 50,
+        AvgDiskPercent > 75, 75,
+        100
+    );
+// Calculate overall health score
+clusterHealth
+| extend OverallHealthScore = (CpuHealth + MemoryHealth + DiskHealth) / 3
+| extend HealthLevel = case(
+    OverallHealthScore >= 90, "Healthy",
+    OverallHealthScore >= 70, "Warning",
+    OverallHealthScore >= 40, "Degraded",
+    "Critical"
+)
+| join kind=leftouter (
+    arg("").Resources
+    | where type =~ "microsoft.azurestackhci/clusters"
+    | where subscriptionId in (subscriptions) or array_length(subscriptions) == 0
+    | project ClusterName = name, ResourceGroup = resourceGroup, ResourceId = id
+) on $left._ResourceId == $right.ResourceId
+| project 
+    ClusterName,
+    ResourceGroup,
+    Computer,
+    HealthLevel,
+    OverallHealthScore,
+    CpuHealth,
+    MemoryHealth,
+    DiskHealth,
+    HealthStatus,
+    LastHeartbeat,
+    AvgCpuPercent,
+    AvgMemoryPercent,
+    AvgDiskPercent
+| order by OverallHealthScore asc

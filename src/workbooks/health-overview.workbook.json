@@ -1,0 +1,435 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 1,
+      "content": {
+        "json": "# Adaptive Cloud Health Dashboard\n\n## Global Overview - Azure Local, AKS Arc & Arc-Enabled Services\n\nThis dashboard provides a centralized view of health, status, inventory, compliance, and performance across your Adaptive Cloud environment.\n\n---"
+      },
+      "name": "text - title"
+    },
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "subscription-param",
+            "version": "KqlParameterItem/1.0",
+            "name": "Subscriptions",
+            "type": 6,
+            "isRequired": true,
+            "multiSelect": true,
+            "quote": "'",
+            "delimiter": ",",
+            "typeSettings": {
+              "additionalResourceOptions": [
+                "value::all"
+              ],
+              "includeAll": true,
+              "showDefault": false
+            },
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "defaultValue": "value::all",
+            "value": [
+              "value::all"
+            ],
+            "label": "Subscriptions"
+          },
+          {
+            "id": "timerange-param",
+            "version": "KqlParameterItem/1.0",
+            "name": "TimeRange",
+            "type": 4,
+            "isRequired": true,
+            "typeSettings": {
+              "selectableValues": [
+                {
+                  "durationMs": 3600000,
+                  "createdTime": "2026-01-07T00:00:00.000Z",
+                  "isInitialTime": false,
+                  "grain": 1,
+                  "useDashboardTimeRange": false
+                },
+                {
+                  "durationMs": 43200000,
+                  "createdTime": "2026-01-07T00:00:00.000Z",
+                  "isInitialTime": false,
+                  "grain": 1,
+                  "useDashboardTimeRange": false
+                },
+                {
+                  "durationMs": 86400000,
+                  "createdTime": "2026-01-07T00:00:00.000Z",
+                  "isInitialTime": false,
+                  "grain": 1,
+                  "useDashboardTimeRange": false
+                },
+                {
+                  "durationMs": 604800000,
+                  "createdTime": "2026-01-07T00:00:00.000Z",
+                  "isInitialTime": false,
+                  "grain": 1,
+                  "useDashboardTimeRange": false
+                },
+                {
+                  "durationMs": 2592000000,
+                  "createdTime": "2026-01-07T00:00:00.000Z",
+                  "isInitialTime": false,
+                  "grain": 1,
+                  "useDashboardTimeRange": false
+                }
+              ],
+              "allowCustom": true
+            },
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "value": {
+              "durationMs": 604800000
+            },
+            "label": "Time Range"
+          },
+          {
+            "id": "resourcegroup-param",
+            "version": "KqlParameterItem/1.0",
+            "name": "ResourceGroups",
+            "type": 2,
+            "isRequired": false,
+            "multiSelect": true,
+            "quote": "'",
+            "delimiter": ",",
+            "query": "arg(\"\").Resources\r\n| where subscriptionId in ({Subscriptions})\r\n| summarize by resourceGroup\r\n| order by resourceGroup asc\r\n| project value = resourceGroup, label = resourceGroup",
+            "crossComponentResources": [
+              "value::all"
+            ],
+            "typeSettings": {
+              "additionalResourceOptions": [
+                "value::all"
+              ],
+              "showDefault": false
+            },
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "defaultValue": "value::all",
+            "queryType": 1,
+            "resourceType": "microsoft.resourcegraph/resources",
+            "value": [
+              "value::all"
+            ],
+            "label": "Resource Groups"
+          }
+        ],
+        "style": "pills",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources"
+      },
+      "name": "parameters - global"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## 📊 Resource Summary"
+      },
+      "name": "text - resource summary header"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "arg(\"\").Resources\r\n| where subscriptionId in ({Subscriptions})\r\n| where type in (\"microsoft.azurestackhci/clusters\", \"microsoft.kubernetes/connectedclusters\", \"microsoft.hybridcompute/machines\")\r\n| extend ResourceType = case(\r\n    type =~ \"microsoft.azurestackhci/clusters\", \"Azure Local Clusters\",\r\n    type =~ \"microsoft.kubernetes/connectedclusters\", \"AKS Arc Clusters\",\r\n    type =~ \"microsoft.hybridcompute/machines\", \"Arc-Enabled Servers\",\r\n    \"Other\"\r\n)\r\n| summarize Count = count() by ResourceType\r\n| project ResourceType, Count",
+        "size": 4,
+        "title": "Resource Count by Type",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": [
+          "value::all"
+        ],
+        "visualization": "tiles",
+        "tileSettings": {
+          "titleContent": {
+            "columnMatch": "ResourceType",
+            "formatter": 1
+          },
+          "leftContent": {
+            "columnMatch": "Count",
+            "formatter": 12,
+            "formatOptions": {
+              "palette": "blue"
+            }
+          },
+          "showBorder": true
+        }
+      },
+      "customWidth": "50",
+      "name": "query - resource count"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "arg(\"\").Resources\r\n| where subscriptionId in ({Subscriptions})\r\n| where type in (\"microsoft.azurestackhci/clusters\", \"microsoft.kubernetes/connectedclusters\", \"microsoft.hybridcompute/machines\")\r\n| summarize Count = count() by location\r\n| top 10 by Count desc\r\n| project Location = location, Count",
+        "size": 3,
+        "title": "Top Locations",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": [
+          "value::all"
+        ],
+        "visualization": "piechart"
+      },
+      "customWidth": "50",
+      "name": "query - locations"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "---\n## 🏥 Health Overview"
+      },
+      "name": "text - health header"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "InsightsMetrics\r\n| where TimeGenerated > ago({TimeRange:range})\r\n| where _SubscriptionId in ({Subscriptions})\r\n| where Namespace in (\"Processor\", \"Memory\", \"LogicalDisk\")\r\n| extend \r\n    MetricType = case(\r\n        Namespace == \"Processor\" and Name == \"UtilizationPercentage\", \"CPU\",\r\n        Namespace == \"Memory\" and Name == \"AvailableMB\", \"Memory\",\r\n        Namespace == \"LogicalDisk\" and Name == \"FreeSpacePercentage\", \"Disk\",\r\n        \"Other\"\r\n    )\r\n| where MetricType != \"Other\"\r\n| extend \r\n    Value = case(\r\n        MetricType == \"CPU\", Val,\r\n        MetricType == \"Memory\", 100 - (Val / 128000 * 100),\r\n        MetricType == \"Disk\", 100 - Val,\r\n        Val\r\n    )\r\n| summarize AvgValue = avg(Value) by Computer, MetricType\r\n| extend \r\n    Health = case(\r\n        (MetricType == \"CPU\" and AvgValue > 90) or (MetricType == \"Memory\" and AvgValue > 95) or (MetricType == \"Disk\" and AvgValue > 90), \"Critical\",\r\n        (MetricType == \"CPU\" and AvgValue > 70) or (MetricType == \"Memory\" and AvgValue > 80) or (MetricType == \"Disk\" and AvgValue > 75), \"Warning\",\r\n        \"Healthy\"\r\n    )\r\n| summarize Count = count() by Health\r\n| project Health, Count",
+        "size": 3,
+        "title": "Overall Health Status",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "crossComponentResources": [
+          "value::all"
+        ],
+        "visualization": "piechart",
+        "chartSettings": {
+          "seriesLabelSettings": [
+            {
+              "seriesName": "Healthy",
+              "color": "green"
+            },
+            {
+              "seriesName": "Warning",
+              "color": "yellow"
+            },
+            {
+              "seriesName": "Critical",
+              "color": "redBright"
+            }
+          ]
+        }
+      },
+      "customWidth": "33",
+      "name": "query - health status"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "arg(\"\").PolicyResources\r\n| where type =~ \"microsoft.policyinsights/policystates\"\r\n| where subscriptionId in ({Subscriptions})\r\n| extend ComplianceState = properties.complianceState\r\n| summarize \r\n    Compliant = countif(ComplianceState == \"Compliant\"),\r\n    NonCompliant = countif(ComplianceState == \"NonCompliant\"),\r\n    Total = count()\r\n| extend CompliancePercentage = round((todouble(Compliant) / todouble(Total)) * 100, 2)\r\n| project CompliancePercentage, Compliant, NonCompliant, Total",
+        "size": 4,
+        "title": "Compliance Score",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": [
+          "value::all"
+        ],
+        "visualization": "tiles",
+        "tileSettings": {
+          "titleContent": {
+            "columnMatch": "CompliancePercentage",
+            "formatter": 1
+          },
+          "leftContent": {
+            "columnMatch": "CompliancePercentage",
+            "formatter": 12,
+            "formatOptions": {
+              "palette": "greenRed",
+              "compositeBarSettings": {
+                "labelText": "",
+                "columnSettings": []
+              }
+            },
+            "numberFormat": {
+              "unit": 1,
+              "options": {
+                "style": "decimal",
+                "maximumFractionDigits": 1
+              }
+            }
+          },
+          "secondaryContent": {
+            "columnMatch": "Compliant",
+            "formatter": 1
+          },
+          "showBorder": true
+        }
+      },
+      "customWidth": "33",
+      "name": "query - compliance score"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Heartbeat\r\n| where TimeGenerated > ago({TimeRange:range})\r\n| where SubscriptionId in ({Subscriptions})\r\n| summarize LastHeartbeat = max(TimeGenerated) by Computer\r\n| extend Status = case(\r\n    LastHeartbeat < ago(10m), \"Offline\",\r\n    LastHeartbeat < ago(5m), \"Degraded\",\r\n    \"Online\"\r\n)\r\n| summarize Count = count() by Status",
+        "size": 3,
+        "title": "Connectivity Status",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "crossComponentResources": [
+          "value::all"
+        ],
+        "visualization": "piechart",
+        "chartSettings": {
+          "seriesLabelSettings": [
+            {
+              "seriesName": "Online",
+              "color": "green"
+            },
+            {
+              "seriesName": "Degraded",
+              "color": "yellow"
+            },
+            {
+              "seriesName": "Offline",
+              "color": "redBright"
+            }
+          ]
+        }
+      },
+      "customWidth": "33",
+      "name": "query - connectivity"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "---\n## 📦 Inventory Details"
+      },
+      "name": "text - inventory header"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "arg(\"\").Resources\r\n| where type =~ \"microsoft.azurestackhci/clusters\"\r\n| where subscriptionId in ({Subscriptions})\r\n| extend \r\n    ClusterName = name,\r\n    ResourceGroup = resourceGroup,\r\n    Location = location,\r\n    Status = properties.status,\r\n    NodeCount = array_length(properties.reportedProperties.clusterNodes),\r\n    LastSync = properties.lastSync\r\n| project ClusterName, ResourceGroup, Location, Status, NodeCount, LastSync\r\n| order by ClusterName asc",
+        "size": 0,
+        "title": "Azure Local Clusters",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": [
+          "value::all"
+        ],
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "Status",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "icons",
+                "thresholdsGrid": [
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Connected",
+                    "representation": "success",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "Default",
+                    "thresholdValue": null,
+                    "representation": "warning",
+                    "text": "{0}{1}"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "name": "query - azure local inventory"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "arg(\"\").Resources\r\n| where type =~ \"microsoft.kubernetes/connectedclusters\"\r\n| where subscriptionId in ({Subscriptions})\r\n| extend \r\n    ClusterName = name,\r\n    ResourceGroup = resourceGroup,\r\n    Location = location,\r\n    Status = properties.connectivityStatus,\r\n    KubernetesVersion = properties.kubernetesVersion,\r\n    NodeCount = properties.totalNodeCount\r\n| project ClusterName, ResourceGroup, Location, Status, KubernetesVersion, NodeCount\r\n| order by ClusterName asc",
+        "size": 0,
+        "title": "AKS Arc Clusters",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": [
+          "value::all"
+        ],
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "Status",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "icons",
+                "thresholdsGrid": [
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Connected",
+                    "representation": "success",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "Default",
+                    "thresholdValue": null,
+                    "representation": "warning",
+                    "text": "{0}{1}"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "name": "query - aks arc inventory"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "---\n## 📈 Performance Metrics"
+      },
+      "name": "text - performance header"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "InsightsMetrics\r\n| where TimeGenerated > ago({TimeRange:range})\r\n| where _SubscriptionId in ({Subscriptions})\r\n| where Namespace == \"Processor\" and Name == \"UtilizationPercentage\"\r\n| summarize AvgCPU = avg(Val) by bin(TimeGenerated, 5m), Computer\r\n| project TimeGenerated, Computer, AvgCPU\r\n| render timechart",
+        "size": 0,
+        "title": "CPU Utilization Over Time",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "crossComponentResources": [
+          "value::all"
+        ]
+      },
+      "customWidth": "50",
+      "name": "query - cpu chart"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "InsightsMetrics\r\n| where TimeGenerated > ago({TimeRange:range})\r\n| where _SubscriptionId in ({Subscriptions})\r\n| where Namespace == \"Memory\" and Name == \"AvailableMB\"\r\n| extend UsedPercent = 100 - (Val / 128000 * 100)\r\n| summarize AvgMemory = avg(UsedPercent) by bin(TimeGenerated, 5m), Computer\r\n| project TimeGenerated, Computer, AvgMemory\r\n| render timechart",
+        "size": 0,
+        "title": "Memory Utilization Over Time",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "crossComponentResources": [
+          "value::all"
+        ]
+      },
+      "customWidth": "50",
+      "name": "query - memory chart"
+    }
+  ],
+  "fallbackResourceIds": [],
+  "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}

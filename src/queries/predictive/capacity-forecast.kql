@@ -1,0 +1,57 @@
+// Capacity Forecast Query - Predict resource exhaustion
+// Uses linear regression to forecast when capacity will be exhausted
+
+let subscriptions = dynamic({Subscriptions});
+let timeRange = {TimeRange:range};
+let forecastDays = 30;
+
+// Get historical disk usage
+let diskUsage = InsightsMetrics
+| where TimeGenerated > ago(timeRange)
+| where _SubscriptionId in (subscriptions) or array_length(subscriptions) == 0
+| where Namespace == "LogicalDisk" and Name == "FreeSpacePercentage"
+| extend UsedPercent = 100 - Val
+| summarize AvgUsedPercent = avg(UsedPercent) by bin(TimeGenerated, 1d), Computer, _ResourceId
+| project TimeGenerated, Computer, _ResourceId, UsedPercent = AvgUsedPercent;
+
+// Calculate trend and forecast
+diskUsage
+| extend DayNumber = datetime_diff('day', TimeGenerated, ago(timeRange))
+| summarize 
+    (Slope, Intercept) = series_fit_line(make_list(UsedPercent), make_list(DayNumber)),
+    CurrentUsage = avg(UsedPercent),
+    MaxDays = max(DayNumber)
+    by Computer, _ResourceId
+| extend 
+    ProjectedUsageIn30Days = Intercept + (Slope * (MaxDays + forecastDays)),
+    DaysUntilFull = iff(Slope > 0, (100 - CurrentUsage) / Slope, double(null)),
+    TrendDirection = case(
+        Slope > 0.5, "Increasing",
+        Slope < -0.5, "Decreasing",
+        "Stable"
+    )
+| extend 
+    CapacityRisk = case(
+        DaysUntilFull < 30, "Critical",
+        DaysUntilFull < 60, "High",
+        DaysUntilFull < 90, "Medium",
+        "Low"
+    )
+| join kind=leftouter (
+    arg("").Resources
+    | where type =~ "microsoft.azurestackhci/clusters" or type =~ "microsoft.hybridcompute/machines"
+    | where subscriptionId in (subscriptions) or array_length(subscriptions) == 0
+    | project ResourceName = name, ResourceGroup = resourceGroup, ResourceId = id
+) on $left._ResourceId == $right.ResourceId
+| project 
+    ResourceName,
+    ResourceGroup,
+    Computer,
+    CurrentUsage = round(CurrentUsage, 2),
+    ProjectedUsageIn30Days = round(ProjectedUsageIn30Days, 2),
+    DaysUntilFull = round(DaysUntilFull, 0),
+    TrendDirection,
+    CapacityRisk,
+    GrowthRate = round(Slope, 4)
+| where isnotnull(DaysUntilFull)
+| order by DaysUntilFull asc

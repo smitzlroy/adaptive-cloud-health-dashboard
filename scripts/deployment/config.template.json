@@ -1,0 +1,17 @@
+{
+  "subscriptions": [
+    "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+  ],
+  "resourceGroup": "rg-adaptive-cloud-dashboard",
+  "location": "eastus",
+  "logAnalytics": {
+    "name": "law-adaptive-cloud",
+    "sku": "PerGB2018",
+    "retentionDays": 90
+  },
+  "tags": {
+    "environment": "production",
+    "solution": "adaptive-cloud-dashboard",
+    "version": "1.0.0"
+  }
+}

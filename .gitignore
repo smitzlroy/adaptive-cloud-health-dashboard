@@ -1,0 +1,51 @@
+# Azure and PowerShell
+*.log
+*.tmp
+.env
+.env.local
+config.local.json
+*.parameters.json
+!templates/**/*.parameters.json
+
+# PowerShell
+PSScriptAnalyzerSettings.psd1
+
+# Azure credentials
+*.publishsettings
+*.azureauth
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Power BI
+*.pbix.temp
+~$*.pbix
+
+# Build outputs
+bin/
+obj/
+out/
+dist/
+
+# Dependencies
+node_modules/
+packages/
+
+# Test outputs
+TestResults/
+coverage/
+
+# User-specific files
+*.user
+*.suo
+*.cache
+
+# Temporary files
+temp/
+tmp/
+*.bak

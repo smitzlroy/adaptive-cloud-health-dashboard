@@ -1,0 +1,139 @@
+name: Validate Queries and Workbooks
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'src/queries/**'
+      - 'src/workbooks/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'src/queries/**'
+      - 'src/workbooks/**'
+
+jobs:
+  validate-queries:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Validate KQL Syntax
+      run: |
+        echo "Validating KQL query files..."
+        find src/queries -name "*.kql" -type f | while read file; do
+          echo "Checking: $file"
+          # Basic syntax validation
+          if grep -q "^//" "$file"; then
+            echo "✓ Has comments"
+          fi
+          if grep -q "let\|where\|project\|summarize\|extend" "$file"; then
+            echo "✓ Contains KQL operators"
+          else
+            echo "⚠️ Warning: No KQL operators found in $file"
+          fi
+        done
+
+    - name: Check Query Parameters
+      run: |
+        echo "Checking for required parameters..."
+        find src/queries -name "*.kql" -type f | while read file; do
+          if grep -q "{Subscriptions}" "$file" || grep -q "{TimeRange" "$file"; then
+            echo "✓ $file uses parameters"
+          else
+            echo "⚠️ $file might need parameters"
+          fi
+        done
+
+  validate-workbooks:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Validate JSON Structure
+      run: |
+        echo "Validating workbook JSON files..."
+        for file in src/workbooks/*.json; do
+          if [ -f "$file" ]; then
+            echo "Checking: $file"
+            if jq empty "$file" 2>/dev/null; then
+              echo "✓ Valid JSON"
+            else
+              echo "✗ Invalid JSON in $file"
+              exit 1
+            fi
+          fi
+        done
+
+    - name: Check Workbook Schema
+      run: |
+        echo "Checking workbook schema..."
+        for file in src/workbooks/*.json; do
+          if [ -f "$file" ]; then
+            if jq -e '.version and .items' "$file" > /dev/null; then
+              echo "✓ $file has required schema fields"
+            else
+              echo "⚠️ $file might be missing schema fields"
+            fi
+          fi
+        done
+
+  validate-documentation:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Check for README
+      run: |
+        if [ -f "README.md" ]; then
+          echo "✓ README.md exists"
+        else
+          echo "✗ README.md missing"
+          exit 1
+        fi
+
+    - name: Validate Markdown Links
+      uses: gaurav-nelson/github-action-markdown-link-check@v1
+      with:
+        use-quiet-mode: 'yes'
+        config-file: '.github/workflows/markdown-link-check-config.json'
+
+  lint-scripts:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup PowerShell
+      shell: pwsh
+      run: |
+        Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
+
+    - name: Analyze PowerShell Scripts
+      shell: pwsh
+      run: |
+        $scripts = Get-ChildItem -Path scripts -Recurse -Filter *.ps1
+        $issues = @()
+        
+        foreach ($script in $scripts) {
+          Write-Host "Analyzing: $($script.FullName)"
+          $results = Invoke-ScriptAnalyzer -Path $script.FullName -Severity Warning,Error
+          if ($results) {
+            $issues += $results
+            $results | Format-Table -AutoSize
+          }
+        }
+        
+        if ($issues.Count -gt 0) {
+          Write-Host "Found $($issues.Count) issue(s)"
+          exit 1
+        } else {
+          Write-Host "✓ All scripts passed analysis"
+        }

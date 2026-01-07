@@ -1,0 +1,53 @@
+// Global Inventory Query - Arc-Enabled Servers
+// This query retrieves inventory of all Arc-enabled servers
+
+let subscriptions = dynamic({Subscriptions});
+let timeRange = {TimeRange:range};
+
+arg("").Resources
+| where type =~ "microsoft.hybridcompute/machines"
+| where subscriptionId in (subscriptions) or array_length(subscriptions) == 0
+| extend 
+    MachineName = name,
+    ResourceGroup = resourceGroup,
+    Location = location,
+    SubscriptionId = subscriptionId,
+    Status = properties.status,
+    OSType = properties.osType,
+    OSName = properties.osName,
+    OSVersion = properties.osVersion,
+    AgentVersion = properties.agentVersion,
+    LastStatusChange = properties.lastStatusChange,
+    ProvisioningState = properties.provisioningState,
+    DomainName = properties.domainName,
+    Manufacturer = properties.detectedProperties.manufacturer,
+    Model = properties.detectedProperties.model,
+    CloudMetadataProvider = properties.cloudMetadata.provider
+| join kind=leftouter (
+    Resources
+    | where type =~ "microsoft.hybridcompute/machines"
+    | where subscriptionId in (subscriptions) or array_length(subscriptions) == 0
+    | project MachineResourceId = id, tags
+) on $left.id == $right.MachineResourceId
+| project 
+    MachineName,
+    ResourceGroup,
+    Location,
+    SubscriptionId,
+    Status,
+    OSType,
+    OSName,
+    OSVersion,
+    AgentVersion,
+    LastStatusChange,
+    ProvisioningState,
+    DomainName,
+    Manufacturer,
+    Model,
+    CloudMetadataProvider,
+    Environment = tostring(tags["environment"]),
+    Owner = tostring(tags["owner"]),
+    Role = tostring(tags["role"]),
+    Tags = tags,
+    ResourceId = id
+| order by MachineName asc

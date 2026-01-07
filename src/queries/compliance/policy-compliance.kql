@@ -1,0 +1,43 @@
+// Compliance Query - Azure Policy Compliance
+// Retrieves compliance status for resources
+
+let subscriptions = dynamic({Subscriptions});
+let timeRange = {TimeRange:range};
+
+arg("").PolicyResources
+| where type =~ "microsoft.policyinsights/policystates"
+| where subscriptionId in (subscriptions) or array_length(subscriptions) == 0
+| extend 
+    ComplianceState = properties.complianceState,
+    PolicyDefinitionName = properties.policyDefinitionName,
+    PolicyDefinitionId = properties.policyDefinitionId,
+    ResourceType = properties.resourceType,
+    ResourceId = properties.resourceId,
+    ResourceGroup = properties.resourceGroup,
+    Timestamp = properties.timestamp
+| where Timestamp > ago(timeRange)
+| summarize 
+    TotalResources = dcount(ResourceId),
+    CompliantResources = dcountif(ResourceId, ComplianceState == "Compliant"),
+    NonCompliantResources = dcountif(ResourceId, ComplianceState == "NonCompliant"),
+    ConflictResources = dcountif(ResourceId, ComplianceState == "Conflict")
+    by PolicyDefinitionName, ResourceType, ResourceGroup, subscriptionId
+| extend CompliancePercentage = round((todouble(CompliantResources) / todouble(TotalResources)) * 100, 2)
+| extend ComplianceLevel = case(
+    CompliancePercentage >= 95, "Compliant",
+    CompliancePercentage >= 80, "Warning",
+    CompliancePercentage >= 60, "Risk",
+    "Critical"
+)
+| project 
+    PolicyDefinitionName,
+    ResourceType,
+    ResourceGroup,
+    SubscriptionId = subscriptionId,
+    TotalResources,
+    CompliantResources,
+    NonCompliantResources,
+    ConflictResources,
+    CompliancePercentage,
+    ComplianceLevel
+| order by CompliancePercentage asc

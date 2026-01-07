@@ -1,0 +1,65 @@
+// Performance Metrics Query - Resource Utilization
+// Aggregates CPU, Memory, and Disk performance metrics
+
+let subscriptions = dynamic({Subscriptions});
+let timeRange = {TimeRange:range};
+let timeGrain = 5m;
+
+InsightsMetrics
+| where TimeGenerated > ago(timeRange)
+| where _SubscriptionId in (subscriptions) or array_length(subscriptions) == 0
+| where Namespace in ("Processor", "Memory", "LogicalDisk", "Network")
+| extend 
+    MetricType = case(
+        Namespace == "Processor" and Name == "UtilizationPercentage", "CPU",
+        Namespace == "Memory" and Name == "AvailableMB", "Memory",
+        Namespace == "LogicalDisk" and Name == "FreeSpacePercentage", "Disk",
+        Namespace == "Network" and Name == "BytesTransmitted", "NetworkOut",
+        Namespace == "Network" and Name == "BytesReceived", "NetworkIn",
+        "Other"
+    )
+| where MetricType != "Other"
+| extend 
+    Value = case(
+        MetricType == "CPU", Val,
+        MetricType == "Memory", 100 - (Val / 128000 * 100), // Assuming 128GB max memory
+        MetricType == "Disk", 100 - Val,
+        MetricType in ("NetworkOut", "NetworkIn"), Val / 1024 / 1024, // Convert to MB
+        Val
+    )
+| summarize 
+    AvgValue = avg(Value),
+    MinValue = min(Value),
+    MaxValue = max(Value),
+    P95Value = percentile(Value, 95),
+    P99Value = percentile(Value, 99)
+    by bin(TimeGenerated, timeGrain), Computer, MetricType, _ResourceId
+| extend 
+    PerformanceLevel = case(
+        MetricType == "CPU" and AvgValue > 90, "Critical",
+        MetricType == "CPU" and AvgValue > 70, "Warning",
+        MetricType == "Memory" and AvgValue > 95, "Critical",
+        MetricType == "Memory" and AvgValue > 80, "Warning",
+        MetricType == "Disk" and AvgValue > 90, "Critical",
+        MetricType == "Disk" and AvgValue > 75, "Warning",
+        "Healthy"
+    )
+| join kind=leftouter (
+    arg("").Resources
+    | where type =~ "microsoft.azurestackhci/clusters" or type =~ "microsoft.hybridcompute/machines"
+    | where subscriptionId in (subscriptions) or array_length(subscriptions) == 0
+    | project ResourceName = name, ResourceGroup = resourceGroup, ResourceId = id
+) on $left._ResourceId == $right.ResourceId
+| project 
+    TimeGenerated,
+    ResourceName,
+    ResourceGroup,
+    Computer,
+    MetricType,
+    AvgValue,
+    MinValue,
+    MaxValue,
+    P95Value,
+    P99Value,
+    PerformanceLevel
+| order by TimeGenerated desc, Computer asc

@@ -1,0 +1,48 @@
+// Global Inventory Query - AKS Arc Clusters
+// This query retrieves inventory of all AKS Arc (Azure Kubernetes Service on Azure Arc) clusters
+
+let subscriptions = dynamic({Subscriptions});
+let timeRange = {TimeRange:range};
+
+arg("").Resources
+| where type =~ "microsoft.kubernetes/connectedclusters"
+| where subscriptionId in (subscriptions) or array_length(subscriptions) == 0
+| where properties.distribution =~ "AKS_Management" or properties.distribution =~ "AKS"
+| extend 
+    ClusterName = name,
+    ResourceGroup = resourceGroup,
+    Location = location,
+    SubscriptionId = subscriptionId,
+    ConnectivityStatus = properties.connectivityStatus,
+    Distribution = properties.distribution,
+    Infrastructure = properties.infrastructure,
+    KubernetesVersion = properties.kubernetesVersion,
+    TotalNodeCount = properties.totalNodeCount,
+    TotalCoreCount = properties.totalCoreCount,
+    LastConnectivityTime = properties.lastConnectivityTime,
+    ProvisioningState = properties.provisioningState
+| join kind=leftouter (
+    Resources
+    | where type =~ "microsoft.kubernetes/connectedclusters"
+    | where subscriptionId in (subscriptions) or array_length(subscriptions) == 0
+    | project ClusterResourceId = id, tags
+) on $left.id == $right.ClusterResourceId
+| project 
+    ClusterName,
+    ResourceGroup,
+    Location,
+    SubscriptionId,
+    ConnectivityStatus,
+    Distribution,
+    Infrastructure,
+    KubernetesVersion,
+    TotalNodeCount,
+    TotalCoreCount,
+    LastConnectivityTime,
+    ProvisioningState,
+    Environment = tostring(tags["environment"]),
+    Owner = tostring(tags["owner"]),
+    CostCenter = tostring(tags["costcenter"]),
+    Tags = tags,
+    ResourceId = id
+| order by ClusterName asc
