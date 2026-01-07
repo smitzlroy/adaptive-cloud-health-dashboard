@@ -73,7 +73,7 @@
     {
       "type": 1,
       "content": {
-        "json": "## 📊 Resource Summary"
+        "json": "## 📊 Resource Summary\n\nQuick overview of your Adaptive Cloud resources across subscriptions and locations."
       },
       "name": "text - summary header"
     },
@@ -101,6 +101,10 @@
             "formatOptions": {
               "palette": "blue"
             }
+          },
+          "secondaryContent": {
+            "columnMatch": "ResourceType",
+            "formatter": 1
           },
           "showBorder": true
         }
@@ -156,7 +160,7 @@
     {
       "type": 1,
       "content": {
-        "json": "---\n## ⚙️ Hardware Capacity Overview"
+        "json": "---\n## ⚙️ Hardware Capacity Overview\n\n**Total compute resources across all Azure Local clusters.** View CPU cores, memory (TB), total nodes, and cluster count. Use this to understand your overall infrastructure capacity."
       },
       "name": "text - hardware header"
     },
@@ -181,6 +185,16 @@
             "formatter": 12,
             "formatOptions": {
               "palette": "blue"
+            }
+          },
+          "secondaryContent": {
+            "columnMatch": "TotalClusters",
+            "formatter": 1,
+            "formatOptions": {
+              "compositeBarSettings": {
+                "labelText": "Total Clusters",
+                "columnSettings": []
+              }
             }
           },
           "showBorder": true
@@ -220,7 +234,7 @@
     {
       "type": 1,
       "content": {
-        "json": "---\n## 🔗 Connectivity & Health Status"
+        "json": "---\n## 🔗 Connectivity & Health Status\n\n**Monitor connection health across all resources.** Track last sync times, identify stale connections (>30 min warning, >120 min critical), and view AKS Arc connectivity status. Critical connections require immediate attention."
       },
       "name": "text - connectivity header"
     },
@@ -300,7 +314,7 @@
     {
       "type": 1,
       "content": {
-        "json": "---\n## ⚙️ Configuration & Compliance"
+        "json": "---\n## ⚙️ Configuration & Compliance\n\n**Review cluster configuration settings.** Monitor billing models, Windows Server subscriptions, diagnostic levels, remote support status, and software assurance. Each tile shows the count of clusters with that specific feature enabled."
       },
       "name": "text - config header"
     },
@@ -316,6 +330,27 @@
         "crossComponentResources": ["{Subscriptions}"],
         "visualization": "tiles",
         "tileSettings": {
+          "titleContent": {
+            "columnMatch": "BillingStandard",
+            "formatter": 1
+          },
+          "leftContent": {
+            "columnMatch": "BillingStandard",
+            "formatter": 12,
+            "formatOptions": {
+              "palette": "blue"
+            }
+          },
+          "secondaryContent": {
+            "columnMatch": "BillingStandard",
+            "formatter": 1,
+            "formatOptions": {
+              "compositeBarSettings": {
+                "labelText": "Standard Billing",
+                "columnSettings": []
+              }
+            }
+          },
           "showBorder": true
         }
       },
@@ -412,7 +447,7 @@
     {
       "type": 1,
       "content": {
-        "json": "---\n## 🔒 Security Posture"
+        "json": "---\n## 🔒 Security Posture\n\n**Security feature adoption across clusters.** Track IMDS Attestation (identity/security verification), Isolated VM attestation configuration, and Entra ID integration. Each tile shows the count of clusters with that security feature enabled or configured."
       },
       "name": "text - security header"
     },
@@ -428,6 +463,27 @@
         "crossComponentResources": ["{Subscriptions}"],
         "visualization": "tiles",
         "tileSettings": {
+          "titleContent": {
+            "columnMatch": "ImdsEnabled",
+            "formatter": 1
+          },
+          "leftContent": {
+            "columnMatch": "ImdsEnabled",
+            "formatter": 12,
+            "formatOptions": {
+              "palette": "green"
+            }
+          },
+          "secondaryContent": {
+            "columnMatch": "ImdsEnabled",
+            "formatter": 1,
+            "formatOptions": {
+              "compositeBarSettings": {
+                "labelText": "IMDS Enabled",
+                "columnSettings": []
+              }
+            }
+          },
           "showBorder": true
         }
       },
@@ -451,7 +507,7 @@
     {
       "type": 1,
       "content": {
-        "json": "---\n## 🔌 Arc Extensions Inventory"
+        "json": "---\n## 🔌 Arc Extensions Inventory\n\n**Deployed extensions across all Arc-enabled resources.** View total extension count, status distribution (Succeeded/Failed/Updating), and top 5 most commonly deployed extensions. Failed extensions may require troubleshooting."
       },
       "name": "text - extensions header"
     },
@@ -605,7 +661,7 @@
     {
       "type": 1,
       "content": {
-        "json": "### 📋 Governance Tag Compliance"
+        "json": "### 📋 Governance Tag Compliance\n\n**Tag adoption for cost allocation and governance.** Each tile shows the number of resources with: Owner tag, Environment tag, CostCenter tag, or completely untagged. Untagged resources cannot be properly allocated in cost reports."
       },
       "name": "text - tag compliance subheader"
     },
@@ -632,6 +688,16 @@
               "palette": "blue"
             }
           },
+          "secondaryContent": {
+            "columnMatch": "WithOwner",
+            "formatter": 1,
+            "formatOptions": {
+              "compositeBarSettings": {
+                "labelText": "Resources with Owner Tag",
+                "columnSettings": []
+              }
+            }
+          },
           "showBorder": true
         }
       },
@@ -655,7 +721,7 @@
     {
       "type": 1,
       "content": {
-        "json": "### 💳 Licensing & Subscription Optimization"
+        "json": "### 💳 Licensing & Subscription Optimization\n\n**Track paid features and licensing costs.** Monitor: Windows Server Subscription (paid), Software Assurance (paid), Standard Billing model, and ESU eligibility for Arc servers. Each count represents clusters/servers using these paid features."
       },
       "name": "text - licensing subheader"
     },
@@ -680,6 +746,16 @@
             "formatter": 12,
             "formatOptions": {
               "palette": "yellow"
+            }
+          },
+          "secondaryContent": {
+            "columnMatch": "WindowsSubEnabled",
+            "formatter": 1,
+            "formatOptions": {
+              "compositeBarSettings": {
+                "labelText": "Windows Server Sub (Paid)",
+                "columnSettings": []
+              }
             }
           },
           "showBorder": true
@@ -765,7 +841,7 @@
     {
       "type": 1,
       "content": {
-        "json": "### 🧟 Zombie & Stale Resources (Cost Waste Candidates)"
+        "json": "### 🧟 Zombie & Stale Resources (Cost Waste Candidates)\n\n**Identify disconnected resources wasting costs.** Tiles show: clusters disconnected 30-60 days (review needed), 60-90 days (delete soon), 90+ days (immediate deletion candidate). Stale resources may still incur management costs."
       },
       "name": "text - zombie subheader"
     },
@@ -790,6 +866,16 @@
             "formatter": 12,
             "formatOptions": {
               "palette": "redBright"
+            }
+          },
+          "secondaryContent": {
+            "columnMatch": "Disconnected30Days",
+            "formatter": 1,
+            "formatOptions": {
+              "compositeBarSettings": {
+                "labelText": "30-60 Days Disconnected",
+                "columnSettings": []
+              }
             }
           },
           "showBorder": true
@@ -904,7 +990,7 @@
     {
       "type": 1,
       "content": {
-        "json": "### 🌍 Location & Region Optimization"
+        "json": "### 🌍 Location & Region Optimization\n\n**Identify resources in expensive regions.** Expensive regions (Australia, Brazil, Japan, UK) have 20-30% higher costs. Consider consolidating resources or migrating to Standard Cost regions (US, Europe) for savings."
       },
       "name": "text - location subheader"
     },
@@ -929,6 +1015,16 @@
             "formatter": 12,
             "formatOptions": {
               "palette": "orange"
+            }
+          },
+          "secondaryContent": {
+            "columnMatch": "Total",
+            "formatter": 1,
+            "formatOptions": {
+              "compositeBarSettings": {
+                "labelText": "Total Resources",
+                "columnSettings": []
+              }
             }
           },
           "showBorder": true
@@ -999,7 +1095,7 @@
     {
       "type": 1,
       "content": {
-        "json": "### 🔌 Extension Cost Analysis"
+        "json": "### 🔌 Extension Cost Analysis\n\n**Monitor extension deployment efficiency.** Tiles show: Total extensions deployed, Successfully deployed, Failed (wasted deployment attempts), Currently updating. Failed extensions should be investigated or removed to avoid repeated deployment costs."
       },
       "name": "text - extension cost subheader"
     },
@@ -1026,6 +1122,16 @@
               "palette": "redBright"
             }
           },
+          "secondaryContent": {
+            "columnMatch": "Total",
+            "formatter": 1,
+            "formatOptions": {
+              "compositeBarSettings": {
+                "labelText": "Total Extensions",
+                "columnSettings": []
+              }
+            }
+          },
           "showBorder": true
         }
       },
@@ -1049,7 +1155,7 @@
     {
       "type": 1,
       "content": {
-        "json": "### 📊 Resource Right-Sizing Opportunities"
+        "json": "### 📊 Resource Right-Sizing Opportunities\n\n**Identify over-provisioned servers.** Categories: Very Small (<4 cores, <16GB), Small (4-8 cores, 16-32GB), Medium (8-16 cores, 32-64GB), Large (16+ cores, 64+GB). Review 'Large' servers for potential right-sizing opportunities."
       },
       "name": "text - rightsizing subheader"
     },
@@ -1085,7 +1191,7 @@
     {
       "type": 1,
       "content": {
-        "json": "### 🛡️ Compliance Cost Impact"
+        "json": "### 🛡️ Compliance Cost Impact\n\n**Policy violations requiring remediation.** Chart shows policy names with the most non-compliant resources. Each violation may require manual remediation (time/cost). Focus on high-count violations first for maximum impact."
       },
       "name": "text - compliance cost subheader"
     },
@@ -1286,7 +1392,7 @@
     {
       "type": 1,
       "content": {
-        "json": "---\n## 🛡️ Azure Policy Compliance"
+        "json": "---\n## 🛡️ Azure Policy Compliance\n\n**Overall compliance score for your resources.** The percentage tile shows compliance rate (Compliant resources ÷ Total resources). Bar chart displays the top 10 policy violations by policy name. Policy names are Azure's internal identifiers - hover for full names."
       },
       "name": "text - compliance header"
     },
