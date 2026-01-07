@@ -14,6 +14,7 @@ This solution provides a centralized view of health, status, inventory, complian
 - **Performance Metrics**: Track resource utilization, capacity, and performance trends
 - **Predictive Insights**: Optional forecasting for capacity planning and risk assessment
 - **Custom KPIs**: Health scores, compliance index, and capacity risk indicators
+- **Power BI Integration**: Export all data to Power BI for advanced analytics and custom dashboards
 
 ## 📁 Project Structure
 
@@ -180,6 +181,30 @@ Start with the **free Inventory Dashboard** to evaluate the solution. Upgrade to
 - Cost optimization recommendations
 - Risk assessment scoring
 
+## 📊 Power BI Integration
+
+**Want advanced analytics and custom dashboards?** Export all your inventory data to Power BI:
+
+```powershell
+# Export data from Azure to CSV files
+cd scripts/powerbi
+.\Export-ToPowerBI.ps1
+
+# Generate Power BI import script  
+.\Generate-PowerBIModel.ps1 -CsvPath "..\..\powerbi-exports"
+```
+
+**What you get:**
+- ✅ 14 data tables with all dashboard metrics
+- ✅ Pre-built DAX measures and relationships
+- ✅ Sample report layouts and KPIs
+- ✅ Automatic refresh capability
+- ✅ **Still 100% FREE** (uses Azure Resource Graph API)
+
+📚 **Full Guide:** [docs/powerbi-integration.md](./docs/powerbi-integration.md) | [Quick Start](./scripts/powerbi/README.md)
+
+---
+
 ## 🔧 Customization
 
 All dashboards are fully parameterized and can be customized without code changes:
@@ -211,6 +236,8 @@ Automation scripts are provided for streamlined Git workflows:
 
 - [Setup Guide](./docs/setup/SETUP.md) - Detailed deployment instructions
 - [Customization Guide](./docs/customization/CUSTOMIZATION.md) - How to tailor dashboards
+- [Power BI Integration](./docs/powerbi-integration.md) - Export data to Power BI for advanced analytics
+- [Usability Enhancements](./docs/usability-enhancements.md) - Dashboard improvements and context
 - [Query Reference](./docs/QUERY_REFERENCE.md) - KQL query documentation
 - [Architecture](./docs/ARCHITECTURE.md) - Solution architecture and design
 - [Contributing](./CONTRIBUTING.md) - Contribution guidelines
