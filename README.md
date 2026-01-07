@@ -60,20 +60,29 @@ We offer **two dashboard options** to fit your needs:
 
 **Perfect for getting started with zero cost:**
 
-1. **Login to Azure**
+1. **Get the deployment files**
+   
+   **Option A** - Clone the repository:
+   ```bash
+   git clone https://github.com/smitzlroy/adaptive-cloud-health-dashboard.git
+   cd adaptive-cloud-health-dashboard
+   ```
+   
+   **Option B** - Download files directly (no git required):
+   - [Deploy-Inventory-Dashboard.ps1](https://raw.githubusercontent.com/smitzlroy/adaptive-cloud-health-dashboard/main/scripts/deployment/Deploy-Inventory-Dashboard.ps1)
+   - [inventory-dashboard.workbook.json](https://raw.githubusercontent.com/smitzlroy/adaptive-cloud-health-dashboard/main/src/workbooks/inventory-dashboard.workbook.json)
+   
+   Place both files in the same folder.
+
+2. **Login to Azure**
    ```powershell
    az login
    ```
 
-2. **Create config file**
-   ```powershell
-   Copy-Item .\scripts\deployment\config.template.json .\scripts\deployment\config.json
-   # Edit config.json with your subscription ID and resource group
-   ```
-
 3. **Deploy**
    ```powershell
-   .\scripts\deployment\Deploy-Inventory-Dashboard.ps1
+   cd scripts\deployment  # If you cloned the repo
+   .\Deploy-Inventory-Dashboard.ps1 -SubscriptionId "your-sub-id" -ResourceGroup "your-rg"
    ```
 
 ✨ **Done!** Access your dashboard in Azure Portal > Monitor > Workbooks
