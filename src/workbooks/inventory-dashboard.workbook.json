@@ -603,10 +603,17 @@
       "name": "text - cost header"
     },
     {
+      "type": 1,
+      "content": {
+        "json": "### 📋 Governance Tag Compliance"
+      },
+      "name": "text - tag compliance subheader"
+    },
+    {
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "Resources\r\n| where type in (\"microsoft.azurestackhci/clusters\", \"microsoft.kubernetes/connectedclusters\", \"microsoft.hybridcompute/machines\")\r\n| extend \r\n    HasOwnerTag = isnotnull(tags['Owner']) or isnotnull(tags['owner']),\r\n    HasEnvironmentTag = isnotnull(tags['Environment']) or isnotnull(tags['environment']),\r\n    HasCostCenterTag = isnotnull(tags['CostCenter']) or isnotnull(tags['costcenter']),\r\n    HasAnyTag = array_length(todynamic(tags)) > 0\r\n| summarize \r\n    WithOwner = countif(HasOwnerTag),\r\n    WithEnvironment = countif(HasEnvironmentTag),\r\n    WithCostCenter = countif(HasCostCenterTag),\r\n    WithAnyTag = countif(HasAnyTag),\r\n    Untagged = countif(HasAnyTag == false),\r\n    Total = count()\r\n| project WithOwner, WithEnvironment, WithCostCenter, Untagged, Total",
+        "query": "Resources\r\n| where type in (\"microsoft.azurestackhci/clusters\", \"microsoft.kubernetes/connectedclusters\", \"microsoft.hybridcompute/machines\")\r\n| extend \r\n    HasOwnerTag = isnotnull(tags['Owner']) or isnotnull(tags['owner']),\r\n    HasEnvironmentTag = isnotnull(tags['Environment']) or isnotnull(tags['environment']),\r\n    HasCostCenterTag = isnotnull(tags['CostCenter']) or isnotnull(tags['costcenter']) or isnotnull(tags['cost-center']),\r\n    HasAnyTag = tostring(tags) != \"{}\" and tostring(tags) != \"\"\r\n| summarize \r\n    WithOwner = countif(HasOwnerTag == true),\r\n    WithEnvironment = countif(HasEnvironmentTag == true),\r\n    WithCostCenter = countif(HasCostCenterTag == true),\r\n    Untagged = countif(HasAnyTag == false),\r\n    Total = count()\r\n| project WithOwner, WithEnvironment, WithCostCenter, Untagged, Total",
         "size": 4,
         "title": "Governance Tag Compliance",
         "queryType": 1,
@@ -614,6 +621,17 @@
         "crossComponentResources": ["{Subscriptions}"],
         "visualization": "tiles",
         "tileSettings": {
+          "titleContent": {
+            "columnMatch": "WithOwner",
+            "formatter": 1
+          },
+          "leftContent": {
+            "columnMatch": "WithOwner",
+            "formatter": 12,
+            "formatOptions": {
+              "palette": "blue"
+            }
+          },
           "showBorder": true
         }
       },
@@ -624,7 +642,7 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "Resources\r\n| where type in (\"microsoft.azurestackhci/clusters\", \"microsoft.kubernetes/connectedclusters\", \"microsoft.hybridcompute/machines\")\r\n| extend HasTags = array_length(todynamic(tags)) > 0\r\n| where HasTags == false\r\n| extend \r\n    ResourceName = name,\r\n    ResourceType = case(\r\n        type =~ \"microsoft.azurestackhci/clusters\", \"Azure Local\",\r\n        type =~ \"microsoft.kubernetes/connectedclusters\", \"AKS Arc\",\r\n        type =~ \"microsoft.hybridcompute/machines\", \"Arc Server\",\r\n        \"Other\"\r\n    )\r\n| project ResourceName, ResourceType, resourceGroup, location\r\n| order by ResourceType asc, ResourceName asc",
+        "query": "Resources\r\n| where type in (\"microsoft.azurestackhci/clusters\", \"microsoft.kubernetes/connectedclusters\", \"microsoft.hybridcompute/machines\")\r\n| extend HasTags = tostring(tags) != \"{}\" and tostring(tags) != \"\"\r\n| where HasTags == false\r\n| extend \r\n    ResourceName = name,\r\n    ResourceType = case(\r\n        type =~ \"microsoft.azurestackhci/clusters\", \"Azure Local\",\r\n        type =~ \"microsoft.kubernetes/connectedclusters\", \"AKS Arc\",\r\n        type =~ \"microsoft.hybridcompute/machines\", \"Arc Server\",\r\n        \"Other\"\r\n    )\r\n| project ResourceName, ResourceType, resourceGroup, location\r\n| order by ResourceType asc, ResourceName asc",
         "size": 0,
         "title": "Untagged Resources (Action Required)",
         "queryType": 1,
@@ -633,6 +651,457 @@
       },
       "customWidth": "50",
       "name": "query - untagged resources"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "### 💳 Licensing & Subscription Optimization"
+      },
+      "name": "text - licensing subheader"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type =~ \"microsoft.azurestackhci/clusters\"\r\n| extend \r\n    WindowsServerSub = tostring(properties.desiredProperties.windowsServerSubscription),\r\n    SoftwareAssurance = tostring(properties.softwareAssuranceProperties.softwareAssuranceStatus),\r\n    BillingModel = tostring(properties.billingModel)\r\n| summarize \r\n    WindowsSubEnabled = countif(WindowsServerSub == \"Enabled\"),\r\n    SoftwareAssuranceEnabled = countif(SoftwareAssurance == \"Enabled\"),\r\n    StandardBilling = countif(BillingModel == \"Standard\"),\r\n    Total = count()\r\n| extend \r\n    WindowsSubCost = WindowsSubEnabled * 1,\r\n    SoftwareAssuranceCost = SoftwareAssuranceEnabled * 1\r\n| project WindowsSubEnabled, SoftwareAssuranceEnabled, StandardBilling, Total",
+        "size": 4,
+        "title": "Paid Features in Use (Windows Server Subscription & Software Assurance)",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": ["{Subscriptions}"],
+        "visualization": "tiles",
+        "tileSettings": {
+          "titleContent": {
+            "columnMatch": "WindowsSubEnabled",
+            "formatter": 1
+          },
+          "leftContent": {
+            "columnMatch": "WindowsSubEnabled",
+            "formatter": 12,
+            "formatOptions": {
+              "palette": "yellow"
+            }
+          },
+          "showBorder": true
+        }
+      },
+      "customWidth": "50",
+      "name": "query - licensing costs"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type =~ \"microsoft.azurestackhci/clusters\"\r\n| extend \r\n    ClusterName = name,\r\n    WindowsServerSub = tostring(properties.desiredProperties.windowsServerSubscription),\r\n    SoftwareAssurance = tostring(properties.softwareAssuranceProperties.softwareAssuranceStatus),\r\n    BillingModel = tostring(properties.billingModel)\r\n| project ClusterName, BillingModel, WindowsServerSub, SoftwareAssurance\r\n| order by WindowsServerSub desc, SoftwareAssurance desc",
+        "size": 0,
+        "title": "Cluster Licensing Details",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": ["{Subscriptions}"],
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "WindowsServerSub",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "icons",
+                "thresholdsGrid": [
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Enabled",
+                    "representation": "2",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "Default",
+                    "thresholdValue": null,
+                    "representation": "success",
+                    "text": "{0}{1}"
+                  }
+                ]
+              }
+            },
+            {
+              "columnMatch": "SoftwareAssurance",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "icons",
+                "thresholdsGrid": [
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Enabled",
+                    "representation": "2",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "Default",
+                    "thresholdValue": null,
+                    "representation": "success",
+                    "text": "{0}{1}"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "customWidth": "50",
+      "name": "query - licensing details"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type =~ \"microsoft.hybridcompute/machines\"\r\n| extend \r\n    EsuEligibility = tostring(properties.licenseProfile.esuProfile.esuEligibility),\r\n    EsuKeyState = tostring(properties.licenseProfile.esuProfile.esuKeyState),\r\n    ServerType = tostring(properties.licenseProfile.esuProfile.serverType)\r\n| where EsuEligibility != \"\" and EsuEligibility != \"Ineligible\"\r\n| summarize Count = count() by EsuEligibility, EsuKeyState\r\n| order by Count desc",
+        "size": 0,
+        "title": "ESU (Extended Security Updates) Eligibility - Arc Servers",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": ["{Subscriptions}"],
+        "visualization": "table"
+      },
+      "name": "query - esu eligibility"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "### 🧟 Zombie & Stale Resources (Cost Waste Candidates)"
+      },
+      "name": "text - zombie subheader"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type =~ \"microsoft.azurestackhci/clusters\"\r\n| extend \r\n    Status = tostring(properties.status),\r\n    ConnectivityStatus = tostring(properties.connectivityStatus),\r\n    LastSync = todatetime(properties.lastSyncTimestamp),\r\n    DaysSinceSync = datetime_diff('day', now(), todatetime(properties.lastSyncTimestamp))\r\n| where DaysSinceSync > 30 or Status != \"ConnectedRecently\"\r\n| summarize \r\n    Disconnected30Days = countif(DaysSinceSync > 30 and DaysSinceSync <= 60),\r\n    Disconnected60Days = countif(DaysSinceSync > 60 and DaysSinceSync <= 90),\r\n    Disconnected90Plus = countif(DaysSinceSync > 90)\r\n| project Disconnected30Days, Disconnected60Days, Disconnected90Plus",
+        "size": 4,
+        "title": "Stale Azure Local Clusters (Candidates for Review/Deletion)",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": ["{Subscriptions}"],
+        "visualization": "tiles",
+        "tileSettings": {
+          "titleContent": {
+            "columnMatch": "Disconnected30Days",
+            "formatter": 1
+          },
+          "leftContent": {
+            "columnMatch": "Disconnected90Plus",
+            "formatter": 12,
+            "formatOptions": {
+              "palette": "redBright"
+            }
+          },
+          "showBorder": true
+        }
+      },
+      "customWidth": "50",
+      "name": "query - stale clusters"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type in (\"microsoft.azurestackhci/clusters\", \"microsoft.kubernetes/connectedclusters\", \"microsoft.hybridcompute/machines\")\r\n| extend \r\n    ProvisioningState = tostring(properties.provisioningState),\r\n    Status = tostring(properties.status)\r\n| where ProvisioningState =~ \"Failed\" or Status =~ \"Disconnected\" or Status =~ \"Offline\"\r\n| extend \r\n    ResourceName = name,\r\n    ResourceType = case(\r\n        type =~ \"microsoft.azurestackhci/clusters\", \"Azure Local\",\r\n        type =~ \"microsoft.kubernetes/connectedclusters\", \"AKS Arc\",\r\n        type =~ \"microsoft.hybridcompute/machines\", \"Arc Server\",\r\n        \"Other\"\r\n    )\r\n| summarize Count = count() by ResourceType, ProvisioningState, Status\r\n| order by Count desc",
+        "size": 0,
+        "title": "Failed/Disconnected Resources (Cleanup Candidates)",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": ["{Subscriptions}"],
+        "visualization": "table"
+      },
+      "customWidth": "50",
+      "name": "query - failed resources"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type =~ \"microsoft.azurestackhci/clusters\"\r\n| extend \r\n    ClusterName = name,\r\n    LastSync = todatetime(properties.lastSyncTimestamp),\r\n    DaysSinceSync = datetime_diff('day', now(), todatetime(properties.lastSyncTimestamp)),\r\n    Status = tostring(properties.status)\r\n| where DaysSinceSync > 60\r\n| project ClusterName, LastSync, DaysSinceSync, Status, resourceGroup, location\r\n| order by DaysSinceSync desc",
+        "size": 0,
+        "title": "Azure Local Clusters Not Synced in 60+ Days (Deletion Candidates)",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": ["{Subscriptions}"],
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "DaysSinceSync",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "icons",
+                "thresholdsGrid": [
+                  {
+                    "operator": ">",
+                    "thresholdValue": "90",
+                    "representation": "4",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": ">",
+                    "thresholdValue": "60",
+                    "representation": "2",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "Default",
+                    "thresholdValue": null,
+                    "representation": "warning",
+                    "text": "{0}{1}"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "name": "query - stale cluster details"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type =~ \"microsoft.hybridcompute/machines\"\r\n| extend \r\n    ServerName = name,\r\n    Status = tostring(properties.status),\r\n    LastStatusChange = todatetime(properties.lastStatusChange),\r\n    DaysSinceLastStatus = datetime_diff('day', now(), todatetime(properties.lastStatusChange))\r\n| where Status == \"Disconnected\" and DaysSinceLastStatus > 30\r\n| project ServerName, Status, LastStatusChange, DaysSinceLastStatus, resourceGroup, location\r\n| order by DaysSinceLastStatus desc\r\n| take 50",
+        "size": 0,
+        "title": "Disconnected Arc Servers (30+ Days) - Top 50",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": ["{Subscriptions}"],
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "DaysSinceLastStatus",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "icons",
+                "thresholdsGrid": [
+                  {
+                    "operator": ">",
+                    "thresholdValue": "90",
+                    "representation": "4",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": ">",
+                    "thresholdValue": "60",
+                    "representation": "warning",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "Default",
+                    "thresholdValue": null,
+                    "representation": "2",
+                    "text": "{0}{1}"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "name": "query - disconnected arc servers"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "### 🌍 Location & Region Optimization"
+      },
+      "name": "text - location subheader"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type in (\"microsoft.azurestackhci/clusters\", \"microsoft.kubernetes/connectedclusters\", \"microsoft.hybridcompute/machines\")\r\n| extend \r\n    Region = location,\r\n    IsExpensiveRegion = location in (\"australiaeast\", \"australiasoutheast\", \"brazilsouth\", \"japaneast\", \"japanwest\", \"uksouth\", \"ukwest\")\r\n| summarize \r\n    Total = count(),\r\n    InExpensiveRegions = countif(IsExpensiveRegion == true),\r\n    UniqueRegions = dcount(location)\r\n| project Total, InExpensiveRegions, UniqueRegions",
+        "size": 4,
+        "title": "Region Distribution (Expensive Regions Highlighted)",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": ["{Subscriptions}"],
+        "visualization": "tiles",
+        "tileSettings": {
+          "titleContent": {
+            "columnMatch": "Total",
+            "formatter": 1
+          },
+          "leftContent": {
+            "columnMatch": "InExpensiveRegions",
+            "formatter": 12,
+            "formatOptions": {
+              "palette": "orange"
+            }
+          },
+          "showBorder": true
+        }
+      },
+      "customWidth": "50",
+      "name": "query - region distribution"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type in (\"microsoft.azurestackhci/clusters\", \"microsoft.kubernetes/connectedclusters\", \"microsoft.hybridcompute/machines\")\r\n| summarize Count = count() by resourceGroup\r\n| extend ResourceGroupSprawl = case(\r\n    Count == 1, \"Single Resource\",\r\n    Count <= 3, \"Low (2-3)\",\r\n    Count <= 10, \"Medium (4-10)\",\r\n    \"High (10+)\"\r\n)\r\n| summarize RGCount = count() by ResourceGroupSprawl\r\n| order by RGCount desc",
+        "size": 0,
+        "title": "Resource Group Sprawl Analysis",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": ["{Subscriptions}"],
+        "visualization": "piechart"
+      },
+      "customWidth": "50",
+      "name": "query - rg sprawl"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type in (\"microsoft.azurestackhci/clusters\", \"microsoft.kubernetes/connectedclusters\", \"microsoft.hybridcompute/machines\")\r\n| summarize Count = count() by location\r\n| extend RegionCostTier = case(\r\n    location in (\"australiaeast\", \"australiasoutheast\", \"brazilsouth\", \"japaneast\", \"japanwest\", \"uksouth\", \"ukwest\"), \"Premium Cost\",\r\n    location in (\"westeurope\", \"northeurope\", \"eastus\", \"westus\", \"centralus\"), \"Standard Cost\",\r\n    \"Low Cost\"\r\n)\r\n| project location, Count, RegionCostTier\r\n| order by Count desc\r\n| take 10",
+        "size": 0,
+        "title": "Top 10 Regions by Resource Count (Cost Tier Indicated)",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": ["{Subscriptions}"],
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "RegionCostTier",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "icons",
+                "thresholdsGrid": [
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Premium Cost",
+                    "representation": "2",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Standard Cost",
+                    "representation": "warning",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "Default",
+                    "thresholdValue": null,
+                    "representation": "success",
+                    "text": "{0}{1}"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "name": "query - region cost tier"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "### 🔌 Extension Cost Analysis"
+      },
+      "name": "text - extension cost subheader"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type =~ \"microsoft.hybridcompute/machines/extensions\" or type =~ \"microsoft.kubernetes/connectedclusters/extensions\"\r\n| extend \r\n    ExtensionType = tostring(properties.type),\r\n    ProvisioningState = tostring(properties.provisioningState)\r\n| summarize \r\n    Total = count(),\r\n    Succeeded = countif(ProvisioningState == \"Succeeded\"),\r\n    Failed = countif(ProvisioningState == \"Failed\"),\r\n    Updating = countif(ProvisioningState == \"Updating\")\r\n| project Total, Succeeded, Failed, Updating",
+        "size": 4,
+        "title": "Extension Deployment Status",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": ["{Subscriptions}"],
+        "visualization": "tiles",
+        "tileSettings": {
+          "titleContent": {
+            "columnMatch": "Total",
+            "formatter": 1
+          },
+          "leftContent": {
+            "columnMatch": "Failed",
+            "formatter": 12,
+            "formatOptions": {
+              "palette": "redBright"
+            }
+          },
+          "showBorder": true
+        }
+      },
+      "customWidth": "50",
+      "name": "query - extension status"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type =~ \"microsoft.hybridcompute/machines/extensions\" or type =~ \"microsoft.kubernetes/connectedclusters/extensions\"\r\n| extend \r\n    ExtensionType = tostring(properties.type),\r\n    ProvisioningState = tostring(properties.provisioningState)\r\n| where ProvisioningState == \"Failed\"\r\n| extend \r\n    ExtensionName = name,\r\n    ParentResource = extract(@\"[^/]+$\", 0, extract(@\"^(.+)/extensions/.+$\", 1, id))\r\n| summarize FailedCount = count() by ExtensionType, ParentResource\r\n| order by FailedCount desc\r\n| take 20",
+        "size": 0,
+        "title": "Failed Extensions (Wasted Deployment Attempts - Top 20)",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": ["{Subscriptions}"]
+      },
+      "customWidth": "50",
+      "name": "query - failed extensions"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "### 📊 Resource Right-Sizing Opportunities"
+      },
+      "name": "text - rightsizing subheader"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type =~ \"microsoft.hybridcompute/machines\"\r\n| extend \r\n    ServerName = name,\r\n    TotalMemoryGB = toint(properties.detectedProperties.totalPhysicalMemoryInGigabytes),\r\n    CoreCount = toint(properties.detectedProperties.coreCount)\r\n| where isnotnull(TotalMemoryGB) and isnotnull(CoreCount)\r\n| extend SizeCategory = case(\r\n    TotalMemoryGB >= 64 or CoreCount >= 16, \"Large\",\r\n    TotalMemoryGB >= 32 or CoreCount >= 8, \"Medium\",\r\n    TotalMemoryGB >= 16 or CoreCount >= 4, \"Small\",\r\n    \"Very Small\"\r\n)\r\n| summarize Count = count() by SizeCategory\r\n| order by Count desc",
+        "size": 3,
+        "title": "Arc Server Size Distribution",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": ["{Subscriptions}"],
+        "visualization": "piechart"
+      },
+      "customWidth": "50",
+      "name": "query - server sizes"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type =~ \"microsoft.hybridcompute/machines\"\r\n| extend \r\n    ServerName = name,\r\n    TotalMemoryGB = toint(properties.detectedProperties.totalPhysicalMemoryInGigabytes),\r\n    CoreCount = toint(properties.detectedProperties.coreCount),\r\n    Manufacturer = tostring(properties.detectedProperties.manufacturer),\r\n    Model = tostring(properties.detectedProperties.model)\r\n| where TotalMemoryGB >= 64 or CoreCount >= 16\r\n| project ServerName, CoreCount, TotalMemoryGB, Manufacturer, Model, resourceGroup\r\n| order by CoreCount desc, TotalMemoryGB desc\r\n| take 20",
+        "size": 0,
+        "title": "Large Arc Servers (Right-Sizing Review Candidates - Top 20)",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": ["{Subscriptions}"]
+      },
+      "customWidth": "50",
+      "name": "query - large servers"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "### 🛡️ Compliance Cost Impact"
+      },
+      "name": "text - compliance cost subheader"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "PolicyResources\r\n| where type =~ \"microsoft.policyinsights/policystates\"\r\n| extend \r\n    ComplianceState = tostring(properties.complianceState),\r\n    PolicyName = tostring(properties.policyDefinitionName),\r\n    ResourceId = tostring(properties.resourceId)\r\n| where ComplianceState == \"NonCompliant\"\r\n| summarize NonCompliantCount = count() by PolicyName\r\n| order by NonCompliantCount desc\r\n| take 10\r\n| project PolicyName, NonCompliantCount",
+        "size": 0,
+        "title": "Top 10 Policy Violations (Remediation Cost Risk)",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": ["{Subscriptions}"],
+        "visualization": "barchart"
+      },
+      "name": "query - compliance violations"
     },
     {
       "type": 1,
