@@ -183,25 +183,55 @@ Start with the **free Inventory Dashboard** to evaluate the solution. Upgrade to
 
 ## 📊 Power BI Integration
 
-**Want advanced analytics and custom dashboards?** Export all your inventory data to Power BI:
+### 🎯 Complete Azure Workbook Replication in Power BI
+
+**Want better visuals and interactivity?** Export all your Azure Workbook data to Power BI and get a complete dashboard with:
+
+#### ⚡ What's Included:
+- ✅ **14 Data Tables** - Complete inventory data (1,400+ records)
+- ✅ **45+ DAX Measures** - All calculated metrics pre-built
+- ✅ **9 Dashboard Pages** - Exact replication of Azure Workbook sections
+- ✅ **Interactive Filtering** - Click-through navigation & drill-down
+- ✅ **Professional Layouts** - Step-by-step visual placement guides
+- ✅ **100% FREE** - Uses Azure Resource Graph API (zero cost)
+
+#### 🚀 Quick Start (15-20 minutes):
 
 ```powershell
-# Export data from Azure to CSV files
+# Step 1: Export all data from Azure
 cd scripts/powerbi
 .\Export-ToPowerBI.ps1
 
-# Generate Power BI import script  
-.\Generate-PowerBIModel.ps1 -CsvPath "..\..\powerbi-exports"
+# Step 2: Follow the dashboard builder guide
+# Open: powerbi-exports\START-HERE.md
 ```
 
-**What you get:**
-- ✅ 14 data tables with all dashboard metrics
-- ✅ Pre-built DAX measures and relationships
-- ✅ Sample report layouts and KPIs
-- ✅ Automatic refresh capability
-- ✅ **Still 100% FREE** (uses Azure Resource Graph API)
+#### 📋 Dashboard Pages You'll Build:
+1. **Executive Summary** - KPIs, resource distribution, geographic maps
+2. **Hardware Capacity** - CPU/memory totals by cluster
+3. **Connectivity & Health** - Health scores, critical alerts, sync status
+4. **Governance & Tags** - Tag compliance tracking and gaps
+5. **Security Posture** - IMDS, Entra ID, security feature adoption
+6. **Policy Compliance** - Compliance rates and violation tracking
+7. **Arc Extensions** - Extension status and failure analysis
+8. **Cost Optimization - Zombies** - Disconnected resources (30/60/90 day tracking)
+9. **Regional Costs** - Expensive region identification and migration targets
 
-📚 **Full Guide:** [docs/powerbi-integration.md](./docs/powerbi-integration.md) | [Quick Start](./scripts/powerbi/README.md)
+#### 📦 Complete Package Includes:
+- **PowerBI-DAX-Measures.txt** - Copy/paste all 45 measures
+- **PowerBI-Quick-Setup-Guide.md** - Step-by-step visual placement
+- **PowerBI-Visual-Layout-Reference.txt** - ASCII diagrams for each page
+- **START-HERE.md** - Quick start guide with troubleshooting
+- **Validate-PowerBI-Setup.ps1** - Data validation script
+
+#### ⚙️ Features:
+- Interactive slicers for filtering across all pages
+- Conditional formatting (red for issues, green for healthy)
+- Drill-through capabilities for detailed analysis
+- Auto-refresh when data exports are updated
+- Professional dark/blue themes
+
+📚 **Full Documentation:** [docs/powerbi-integration.md](./docs/powerbi-integration.md) | [Power BI README](./scripts/powerbi/README.md)
 
 ---
 
@@ -234,9 +264,11 @@ Automation scripts are provided for streamlined Git workflows:
 
 ## 📖 Documentation
 
+- [Quick Start Guide](./QUICKSTART.md) - Get started in 5 minutes
 - [Setup Guide](./docs/setup/SETUP.md) - Detailed deployment instructions
 - [Customization Guide](./docs/customization/CUSTOMIZATION.md) - How to tailor dashboards
-- [Power BI Integration](./docs/powerbi-integration.md) - Export data to Power BI for advanced analytics
+- [Power BI Integration](./docs/powerbi-integration.md) - Complete dashboard builder (15-20 minutes)
+- [Power BI Quick Start](./scripts/powerbi/README.md) - Export and build Power BI dashboards
 - [Usability Enhancements](./docs/usability-enhancements.md) - Dashboard improvements and context
 - [Query Reference](./docs/QUERY_REFERENCE.md) - KQL query documentation
 - [Architecture](./docs/ARCHITECTURE.md) - Solution architecture and design
@@ -266,5 +298,13 @@ Built for Azure Local, AKS Arc, and Arc-enabled services monitoring. Designed to
 
 ---
 
-**Version**: 1.0.0  
-**Last Updated**: January 2026
+**Version**: 1.1.0  
+**Last Updated**: January 7, 2026
+
+**Latest Updates:**
+- ✨ **NEW:** Complete Power BI dashboard builder with 45+ DAX measures and 9 pre-designed pages
+- ✨ **NEW:** Step-by-step visual placement guides with ASCII layout diagrams
+- ✨ **NEW:** START-HERE.md quick start guide for 15-20 minute dashboard setup
+- ✨ **NEW:** Validation script to check Power BI data export status
+- 🎯 Enhanced Azure Workbook with friendly labels and contextual help
+- 📊 14 comprehensive data tables covering inventory, compliance, and cost optimization
