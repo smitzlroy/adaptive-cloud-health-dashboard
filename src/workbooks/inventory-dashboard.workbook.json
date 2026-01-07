@@ -24,18 +24,15 @@
             "delimiter": ",",
             "typeSettings": {
               "additionalResourceOptions": [
-                "value::all"
+                "value::selected"
               ],
-              "includeAll": true,
+              "includeAll": false,
               "showDefault": false
             },
             "timeContext": {
               "durationMs": 86400000
             },
-            "defaultValue": "value::all",
-            "value": [
-              "value::all"
-            ],
+            "defaultValue": "value::selected",
             "label": "Subscriptions"
           },
           {
@@ -47,10 +44,8 @@
             "multiSelect": true,
             "quote": "'",
             "delimiter": ",",
-            "query": "Resources\r\n| where subscriptionId in ({Subscriptions})\r\n| summarize by resourceGroup\r\n| order by resourceGroup asc\r\n| project value = resourceGroup, label = resourceGroup",
-            "crossComponentResources": [
-              "value::all"
-            ],
+            "query": "Resources\r\n| summarize by resourceGroup\r\n| order by resourceGroup asc\r\n| project value = resourceGroup, label = resourceGroup",
+            "crossComponentResources": ["{Subscriptions}"],
             "typeSettings": {
               "additionalResourceOptions": [
                 "value::all"
@@ -86,13 +81,13 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "Resources\r\n| where subscriptionId in ({Subscriptions})\r\n| where type in (\"microsoft.azurestackhci/clusters\", \"microsoft.kubernetes/connectedclusters\", \"microsoft.hybridcompute/machines\")\r\n| extend ResourceType = case(\r\n    type =~ \"microsoft.azurestackhci/clusters\", \"Azure Local Clusters\",\r\n    type =~ \"microsoft.kubernetes/connectedclusters\", \"AKS Arc Clusters\",\r\n    type =~ \"microsoft.hybridcompute/machines\", \"Arc-Enabled Servers\",\r\n    \"Other\"\r\n)\r\n| summarize Count = count() by ResourceType\r\n| project ResourceType, Count",
+        "query": "Resources\r\n| where type in (\"microsoft.azurestackhci/clusters\", \"microsoft.kubernetes/connectedclusters\", \"microsoft.hybridcompute/machines\")\r\n| extend ResourceType = case(\r\n    type =~ \"microsoft.azurestackhci/clusters\", \"Azure Local Clusters\",\r\n    type =~ \"microsoft.kubernetes/connectedclusters\", \"AKS Arc Clusters\",\r\n    type =~ \"microsoft.hybridcompute/machines\", \"Arc-Enabled Servers\",\r\n    \"Other\"\r\n)\r\n| summarize Count = count() by ResourceType\r\n| project ResourceType, Count",
         "size": 4,
         "title": "Resource Count by Type",
         "queryType": 1,
         "resourceType": "microsoft.resourcegraph/resources",
         "crossComponentResources": [
-          "value::all"
+          "{Subscriptions}"
         ],
         "visualization": "tiles",
         "tileSettings": {
@@ -117,14 +112,12 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "Resources\r\n| where subscriptionId in ({Subscriptions})\r\n| where type in (\"microsoft.azurestackhci/clusters\", \"microsoft.kubernetes/connectedclusters\", \"microsoft.hybridcompute/machines\")\r\n| summarize Count = count() by subscriptionId\r\n| join kind=leftouter (ResourceContainers | where type == 'microsoft.resources/subscriptions' | project subscriptionId, SubscriptionName = name) on subscriptionId\r\n| project Subscription = coalesce(SubscriptionName, subscriptionId), Count\r\n| order by Count desc",
+        "query": "Resources\r\n| where type in (\"microsoft.azurestackhci/clusters\", \"microsoft.kubernetes/connectedclusters\", \"microsoft.hybridcompute/machines\")\r\n| summarize Count = count() by subscriptionId\r\n| join kind=leftouter (ResourceContainers | where type == 'microsoft.resources/subscriptions' | project subscriptionId, SubscriptionName = name) on subscriptionId\r\n| project Subscription = coalesce(SubscriptionName, subscriptionId), Count\r\n| order by Count desc",
         "size": 3,
         "title": "Resources by Subscription",
         "queryType": 1,
         "resourceType": "microsoft.resourcegraph/resources",
-        "crossComponentResources": [
-          "value::all"
-        ],
+        "crossComponentResources": ["{Subscriptions}"],
         "visualization": "piechart"
       },
       "customWidth": "50",
@@ -134,14 +127,12 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "Resources\r\n| where subscriptionId in ({Subscriptions})\r\n| where type in (\"microsoft.azurestackhci/clusters\", \"microsoft.kubernetes/connectedclusters\", \"microsoft.hybridcompute/machines\")\r\n| summarize Count = count() by location\r\n| top 10 by Count desc\r\n| project Location = location, Count",
+        "query": "Resources\r\n| where type in (\"microsoft.azurestackhci/clusters\", \"microsoft.kubernetes/connectedclusters\", \"microsoft.hybridcompute/machines\")\r\n| summarize Count = count() by location\r\n| top 10 by Count desc\r\n| project Location = location, Count",
         "size": 0,
         "title": "Top Locations",
         "queryType": 1,
         "resourceType": "microsoft.resourcegraph/resources",
-        "crossComponentResources": [
-          "value::all"
-        ],
+        "crossComponentResources": ["{Subscriptions}"],
         "visualization": "barchart"
       },
       "customWidth": "50",
@@ -151,14 +142,12 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "Resources\r\n| where subscriptionId in ({Subscriptions})\r\n| where type in (\"microsoft.azurestackhci/clusters\", \"microsoft.kubernetes/connectedclusters\", \"microsoft.hybridcompute/machines\")\r\n| extend CreatedDate = tostring(properties.provisioningTimestamp)\r\n| extend MonthCreated = format_datetime(todatetime(CreatedDate), 'yyyy-MM')\r\n| where isnotempty(MonthCreated)\r\n| summarize Count = count() by MonthCreated\r\n| order by MonthCreated desc\r\n| take 12\r\n| project Month = MonthCreated, Count",
+        "query": "Resources\r\n| where type in (\"microsoft.azurestackhci/clusters\", \"microsoft.kubernetes/connectedclusters\", \"microsoft.hybridcompute/machines\")\r\n| extend CreatedDate = tostring(properties.provisioningTimestamp)\r\n| extend MonthCreated = format_datetime(todatetime(CreatedDate), 'yyyy-MM')\r\n| where isnotempty(MonthCreated)\r\n| summarize Count = count() by MonthCreated\r\n| order by MonthCreated desc\r\n| take 12\r\n| project Month = MonthCreated, Count",
         "size": 0,
         "title": "Resources Created by Month (Last 12 Months)",
         "queryType": 1,
         "resourceType": "microsoft.resourcegraph/resources",
-        "crossComponentResources": [
-          "value::all"
-        ],
+        "crossComponentResources": ["{Subscriptions}"],
         "visualization": "timechart"
       },
       "customWidth": "50",
@@ -175,14 +164,12 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "Resources\r\n| where type =~ \"microsoft.azurestackhci/clusters\"\r\n| where subscriptionId in ({Subscriptions})\r\n| extend \r\n    ClusterName = name,\r\n    ResourceGroup = resourceGroup,\r\n    Location = location,\r\n    Status = tostring(properties.status),\r\n    ProvisioningState = tostring(properties.provisioningState),\r\n    CloudId = tostring(properties.cloudId),\r\n    NodeCount = array_length(properties.reportedProperties.clusterNodes),\r\n    AzureStackVersion = tostring(properties.reportedProperties.clusterVersion),\r\n    LastSync = tostring(properties.lastSync)\r\n| project ClusterName, ResourceGroup, Location, Status, ProvisioningState, NodeCount, AzureStackVersion, LastSync, CloudId\r\n| order by ClusterName asc",
+        "query": "Resources\r\n| where type =~ \"microsoft.azurestackhci/clusters\"\r\n| extend \r\n    ClusterName = name,\r\n    ResourceGroup = resourceGroup,\r\n    Location = location,\r\n    Status = tostring(properties.status),\r\n    ProvisioningState = tostring(properties.provisioningState),\r\n    CloudId = tostring(properties.cloudId),\r\n    NodeCount = array_length(properties.reportedProperties.clusterNodes),\r\n    AzureStackVersion = tostring(properties.reportedProperties.clusterVersion),\r\n    LastSync = tostring(properties.lastSync)\r\n| project ClusterName, ResourceGroup, Location, Status, ProvisioningState, NodeCount, AzureStackVersion, LastSync, CloudId\r\n| order by ClusterName asc",
         "size": 0,
         "title": "Azure Local Clusters",
         "queryType": 1,
         "resourceType": "microsoft.resourcegraph/resources",
-        "crossComponentResources": [
-          "value::all"
-        ],
+        "crossComponentResources": ["{Subscriptions}"],
         "gridSettings": {
           "formatters": [
             {
@@ -255,14 +242,12 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "Resources\r\n| where type =~ \"microsoft.kubernetes/connectedclusters\"\r\n| where subscriptionId in ({Subscriptions})\r\n| extend \r\n    ClusterName = name,\r\n    ResourceGroup = resourceGroup,\r\n    Location = location,\r\n    ConnectivityStatus = tostring(properties.connectivityStatus),\r\n    KubernetesVersion = tostring(properties.kubernetesVersion),\r\n    Distribution = tostring(properties.distribution),\r\n    Infrastructure = tostring(properties.infrastructure),\r\n    TotalNodeCount = toint(properties.totalNodeCount),\r\n    TotalCoreCount = toint(properties.totalCoreCount),\r\n    AgentVersion = tostring(properties.agentVersion),\r\n    LastConnectivityTime = tostring(properties.lastConnectivityTime)\r\n| project ClusterName, ResourceGroup, Location, ConnectivityStatus, KubernetesVersion, Distribution, TotalNodeCount, TotalCoreCount, AgentVersion, LastConnectivityTime\r\n| order by ClusterName asc",
+        "query": "Resources\r\n| where type =~ \"microsoft.kubernetes/connectedclusters\"\r\n| extend \r\n    ClusterName = name,\r\n    ResourceGroup = resourceGroup,\r\n    Location = location,\r\n    ConnectivityStatus = tostring(properties.connectivityStatus),\r\n    KubernetesVersion = tostring(properties.kubernetesVersion),\r\n    Distribution = tostring(properties.distribution),\r\n    Infrastructure = tostring(properties.infrastructure),\r\n    TotalNodeCount = toint(properties.totalNodeCount),\r\n    TotalCoreCount = toint(properties.totalCoreCount),\r\n    AgentVersion = tostring(properties.agentVersion),\r\n    LastConnectivityTime = tostring(properties.lastConnectivityTime)\r\n| project ClusterName, ResourceGroup, Location, ConnectivityStatus, KubernetesVersion, Distribution, TotalNodeCount, TotalCoreCount, AgentVersion, LastConnectivityTime\r\n| order by ClusterName asc",
         "size": 0,
         "title": "AKS Arc Clusters",
         "queryType": 1,
         "resourceType": "microsoft.resourcegraph/resources",
-        "crossComponentResources": [
-          "value::all"
-        ],
+        "crossComponentResources": ["{Subscriptions}"],
         "gridSettings": {
           "formatters": [
             {
@@ -308,14 +293,12 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "Resources\r\n| where type =~ \"microsoft.hybridcompute/machines\"\r\n| where subscriptionId in ({Subscriptions})\r\n| extend \r\n    ServerName = name,\r\n    ResourceGroup = resourceGroup,\r\n    Location = location,\r\n    Status = tostring(properties.status),\r\n    OSType = tostring(properties.osType),\r\n    OSName = tostring(properties.osName),\r\n    OSVersion = tostring(properties.osVersion),\r\n    AgentVersion = tostring(properties.agentVersion),\r\n    LastStatusChange = tostring(properties.lastStatusChange),\r\n    CloudMetadata = tostring(properties.cloudMetadata.provider)\r\n| project ServerName, ResourceGroup, Location, Status, OSType, OSName, OSVersion, AgentVersion, CloudMetadata, LastStatusChange\r\n| order by ServerName asc",
+        "query": "Resources\r\n| where type =~ \"microsoft.hybridcompute/machines\"\r\n| extend \r\n    ServerName = name,\r\n    ResourceGroup = resourceGroup,\r\n    Location = location,\r\n    Status = tostring(properties.status),\r\n    OSType = tostring(properties.osType),\r\n    OSName = tostring(properties.osName),\r\n    OSVersion = tostring(properties.osVersion),\r\n    AgentVersion = tostring(properties.agentVersion),\r\n    LastStatusChange = tostring(properties.lastStatusChange),\r\n    CloudMetadata = tostring(properties.cloudMetadata.provider)\r\n| project ServerName, ResourceGroup, Location, Status, OSType, OSName, OSVersion, AgentVersion, CloudMetadata, LastStatusChange\r\n| order by ServerName asc",
         "size": 0,
         "title": "Arc-Enabled Servers",
         "queryType": 1,
         "resourceType": "microsoft.resourcegraph/resources",
-        "crossComponentResources": [
-          "value::all"
-        ],
+        "crossComponentResources": ["{Subscriptions}"],
         "gridSettings": {
           "formatters": [
             {
@@ -361,14 +344,12 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "PolicyResources\r\n| where type =~ \"microsoft.policyinsights/policystates\"\r\n| where subscriptionId in ({Subscriptions})\r\n| extend ComplianceState = tostring(properties.complianceState)\r\n| summarize \r\n    Compliant = countif(ComplianceState == \"Compliant\"),\r\n    NonCompliant = countif(ComplianceState == \"NonCompliant\"),\r\n    Total = count()\r\n| extend CompliancePercentage = round((todouble(Compliant) / todouble(Total)) * 100, 2)\r\n| project CompliancePercentage, Compliant, NonCompliant, Total",
+        "query": "PolicyResources\r\n| where type =~ \"microsoft.policyinsights/policystates\"\r\n| extend ComplianceState = tostring(properties.complianceState)\r\n| summarize \r\n    Compliant = countif(ComplianceState == \"Compliant\"),\r\n    NonCompliant = countif(ComplianceState == \"NonCompliant\"),\r\n    Total = count()\r\n| extend CompliancePercentage = round((todouble(Compliant) / todouble(Total)) * 100, 2)\r\n| project CompliancePercentage, Compliant, NonCompliant, Total",
         "size": 4,
         "title": "Overall Compliance Score",
         "queryType": 1,
         "resourceType": "microsoft.resourcegraph/resources",
-        "crossComponentResources": [
-          "value::all"
-        ],
+        "crossComponentResources": ["{Subscriptions}"],
         "visualization": "tiles",
         "tileSettings": {
           "titleContent": {
@@ -413,14 +394,12 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "PolicyResources\r\n| where type =~ \"microsoft.policyinsights/policystates\"\r\n| where subscriptionId in ({Subscriptions})\r\n| extend \r\n    PolicyName = tostring(properties.policyDefinitionName),\r\n    ComplianceState = tostring(properties.complianceState),\r\n    ResourceType = tostring(properties.resourceType)\r\n| summarize Count = count() by PolicyName, ComplianceState\r\n| order by Count desc\r\n| take 10",
+        "query": "PolicyResources\r\n| where type =~ \"microsoft.policyinsights/policystates\"\r\n| extend \r\n    PolicyName = tostring(properties.policyDefinitionName),\r\n    ComplianceState = tostring(properties.complianceState),\r\n    ResourceType = tostring(properties.resourceType)\r\n| summarize Count = count() by PolicyName, ComplianceState\r\n| order by Count desc\r\n| take 10",
         "size": 0,
         "title": "Top 10 Policy Violations",
         "queryType": 1,
         "resourceType": "microsoft.resourcegraph/resources",
-        "crossComponentResources": [
-          "value::all"
-        ],
+        "crossComponentResources": ["{Subscriptions}"],
         "visualization": "barchart"
       },
       "customWidth": "50",
@@ -437,14 +416,12 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "Resources\r\n| where subscriptionId in ({Subscriptions})\r\n| where type in (\"microsoft.azurestackhci/clusters\", \"microsoft.kubernetes/connectedclusters\", \"microsoft.hybridcompute/machines\")\r\n| mvexpand tags\r\n| extend TagKey = tostring(bag_keys(tags)[0])\r\n| extend TagValue = tostring(tags[TagKey])\r\n| where isnotempty(TagKey)\r\n| summarize Count = count() by TagKey\r\n| order by Count desc\r\n| take 10\r\n| project Tag = TagKey, Count",
+        "query": "Resources\r\n| where type in (\"microsoft.azurestackhci/clusters\", \"microsoft.kubernetes/connectedclusters\", \"microsoft.hybridcompute/machines\")\r\n| mvexpand tags\r\n| extend TagKey = tostring(bag_keys(tags)[0])\r\n| extend TagValue = tostring(tags[TagKey])\r\n| where isnotempty(TagKey)\r\n| summarize Count = count() by TagKey\r\n| order by Count desc\r\n| take 10\r\n| project Tag = TagKey, Count",
         "size": 0,
         "title": "Most Used Tags",
         "queryType": 1,
         "resourceType": "microsoft.resourcegraph/resources",
-        "crossComponentResources": [
-          "value::all"
-        ],
+        "crossComponentResources": ["{Subscriptions}"],
         "visualization": "barchart"
       },
       "customWidth": "50",
@@ -454,14 +431,12 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "Resources\r\n| where subscriptionId in ({Subscriptions})\r\n| where type in (\"microsoft.azurestackhci/clusters\", \"microsoft.kubernetes/connectedclusters\", \"microsoft.hybridcompute/machines\")\r\n| extend HasTags = iff(array_length(todynamic(tags)) > 0, \"Tagged\", \"Untagged\")\r\n| summarize Count = count() by HasTags",
+        "query": "Resources\r\n| where type in (\"microsoft.azurestackhci/clusters\", \"microsoft.kubernetes/connectedclusters\", \"microsoft.hybridcompute/machines\")\r\n| extend HasTags = iff(array_length(todynamic(tags)) > 0, \"Tagged\", \"Untagged\")\r\n| summarize Count = count() by HasTags",
         "size": 3,
         "title": "Tagged vs Untagged Resources",
         "queryType": 1,
         "resourceType": "microsoft.resourcegraph/resources",
-        "crossComponentResources": [
-          "value::all"
-        ],
+        "crossComponentResources": ["{Subscriptions}"],
         "visualization": "piechart"
       },
       "customWidth": "50",
@@ -478,3 +453,4 @@
   "fallbackResourceIds": [],
   "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
 }
+
