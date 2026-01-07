@@ -156,6 +156,487 @@
     {
       "type": 1,
       "content": {
+        "json": "---\n## ⚙️ Hardware Capacity Overview"
+      },
+      "name": "text - hardware header"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type =~ \"microsoft.azurestackhci/clusters\"\r\n| mv-expand nodes = properties.reportedProperties.nodes\r\n| extend \r\n    TotalCores = toint(nodes.coreCount),\r\n    TotalMemoryGB = toint(nodes.memoryInGiB)\r\n| summarize \r\n    TotalCPUCores = sum(TotalCores),\r\n    TotalMemoryGB = sum(TotalMemoryGB),\r\n    TotalNodes = count(),\r\n    TotalClusters = dcount(id)\r\n| extend TotalMemoryTB = round(todouble(TotalMemoryGB) / 1024, 2)\r\n| project TotalClusters, TotalNodes, TotalCPUCores, TotalMemoryTB",
+        "size": 4,
+        "title": "Total Azure Local Hardware Capacity",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": ["{Subscriptions}"],
+        "visualization": "tiles",
+        "tileSettings": {
+          "titleContent": {
+            "columnMatch": "TotalClusters",
+            "formatter": 1
+          },
+          "leftContent": {
+            "columnMatch": "TotalCPUCores",
+            "formatter": 12,
+            "formatOptions": {
+              "palette": "blue"
+            }
+          },
+          "showBorder": true
+        }
+      },
+      "customWidth": "50",
+      "name": "query - hardware capacity"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type =~ \"microsoft.azurestackhci/clusters\"\r\n| mv-expand nodes = properties.reportedProperties.nodes\r\n| extend \r\n    ClusterName = name,\r\n    NodeName = tostring(nodes.name),\r\n    Cores = toint(nodes.coreCount),\r\n    MemoryGB = toint(nodes.memoryInGiB),\r\n    Manufacturer = tostring(nodes.manufacturer),\r\n    Model = tostring(nodes.model)\r\n| project ClusterName, NodeName, Cores, MemoryGB, Manufacturer, Model\r\n| order by ClusterName asc, NodeName asc",
+        "size": 0,
+        "title": "Hardware Details by Node",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": ["{Subscriptions}"]
+      },
+      "customWidth": "50",
+      "name": "query - node hardware"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type =~ \"microsoft.azurestackhci/clusters\"\r\n| mv-expand nodes = properties.reportedProperties.nodes\r\n| extend \r\n    ClusterName = name,\r\n    Cores = toint(nodes.coreCount),\r\n    MemoryGB = toint(nodes.memoryInGiB)\r\n| summarize \r\n    TotalCores = sum(Cores),\r\n    TotalMemoryGB = sum(MemoryGB),\r\n    NodeCount = count()\r\n by ClusterName\r\n| extend TotalMemoryTB = round(todouble(TotalMemoryGB) / 1024, 2)\r\n| project ClusterName, NodeCount, TotalCores, TotalMemoryTB\r\n| order by TotalCores desc",
+        "size": 0,
+        "title": "Capacity by Cluster",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": ["{Subscriptions}"],
+        "visualization": "barchart"
+      },
+      "name": "query - cluster capacity"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "---\n## 🔗 Connectivity & Health Status"
+      },
+      "name": "text - connectivity header"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type =~ \"microsoft.azurestackhci/clusters\"\r\n| extend \r\n    Status = tostring(properties.status),\r\n    ConnectivityStatus = tostring(properties.connectivityStatus)\r\n| extend HealthStatus = coalesce(ConnectivityStatus, Status, \"Unknown\")\r\n| summarize Count = count() by HealthStatus",
+        "size": 3,
+        "title": "Azure Local Health Status Distribution",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": ["{Subscriptions}"],
+        "visualization": "piechart"
+      },
+      "customWidth": "50",
+      "name": "query - health status"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type =~ \"microsoft.azurestackhci/clusters\"\r\n| extend \r\n    ClusterName = name,\r\n    LastSync = todatetime(properties.lastSyncTimestamp),\r\n    Status = tostring(properties.status),\r\n    MinutesSinceSync = datetime_diff('minute', now(), todatetime(properties.lastSyncTimestamp))\r\n| extend SyncHealth = case(\r\n    MinutesSinceSync < 30, \"Healthy\",\r\n    MinutesSinceSync < 120, \"Warning\",\r\n    \"Critical\"\r\n)\r\n| project ClusterName, LastSync, MinutesSinceSync, SyncHealth, Status\r\n| order by MinutesSinceSync desc",
+        "size": 0,
+        "title": "Last Sync Status (Stale Connection Detection)",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": ["{Subscriptions}"],
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "SyncHealth",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "icons",
+                "thresholdsGrid": [
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Healthy",
+                    "representation": "success",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Warning",
+                    "representation": "warning",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Critical",
+                    "representation": "failed",
+                    "text": "{0}{1}"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "customWidth": "50",
+      "name": "query - sync status"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type =~ \"microsoft.kubernetes/connectedclusters\"\r\n| extend \r\n    ClusterName = name,\r\n    ConnectivityStatus = tostring(properties.connectivityStatus),\r\n    LastConnectivity = todatetime(properties.lastConnectivityTime),\r\n    MinutesSinceLastConnectivity = datetime_diff('minute', now(), todatetime(properties.lastConnectivityTime))\r\n| project ClusterName, ConnectivityStatus, LastConnectivity, MinutesSinceLastConnectivity\r\n| order by MinutesSinceLastConnectivity desc",
+        "size": 0,
+        "title": "AKS Arc Connectivity Status",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": ["{Subscriptions}"]
+      },
+      "name": "query - aks connectivity"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "---\n## ⚙️ Configuration & Compliance"
+      },
+      "name": "text - config header"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type =~ \"microsoft.azurestackhci/clusters\"\r\n| extend \r\n    BillingModel = tostring(properties.billingModel),\r\n    WindowsServerSub = tostring(properties.desiredProperties.windowsServerSubscription),\r\n    DiagnosticLevel = tostring(properties.desiredProperties.diagnosticLevel),\r\n    RemoteSupport = tostring(properties.remoteSupportProperties.remoteSupportType),\r\n    SoftwareAssurance = tostring(properties.softwareAssuranceProperties.softwareAssuranceStatus)\r\n| summarize \r\n    BillingStandard = countif(BillingModel == \"Standard\"),\r\n    WindowsSubEnabled = countif(WindowsServerSub == \"Enabled\"),\r\n    DiagnosticBasic = countif(DiagnosticLevel == \"Basic\"),\r\n    RemoteSupportEnabled = countif(RemoteSupport != \"Revoke\"),\r\n    SoftwareAssuranceEnabled = countif(SoftwareAssurance == \"Enabled\")\r\n| project BillingStandard, WindowsSubEnabled, DiagnosticBasic, RemoteSupportEnabled, SoftwareAssuranceEnabled",
+        "size": 4,
+        "title": "Configuration Summary",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": ["{Subscriptions}"],
+        "visualization": "tiles",
+        "tileSettings": {
+          "showBorder": true
+        }
+      },
+      "name": "query - config summary"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type =~ \"microsoft.azurestackhci/clusters\"\r\n| extend \r\n    ClusterName = name,\r\n    BillingModel = tostring(properties.billingModel),\r\n    WindowsServerSub = tostring(properties.desiredProperties.windowsServerSubscription),\r\n    DiagnosticLevel = tostring(properties.desiredProperties.diagnosticLevel),\r\n    RemoteSupport = tostring(properties.remoteSupportProperties.remoteSupportType),\r\n    SoftwareAssurance = tostring(properties.softwareAssuranceProperties.softwareAssuranceStatus)\r\n| project ClusterName, BillingModel, WindowsServerSub, DiagnosticLevel, RemoteSupport, SoftwareAssurance\r\n| order by ClusterName asc",
+        "size": 0,
+        "title": "Cluster Configuration Details",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": ["{Subscriptions}"]
+      },
+      "name": "query - config details"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "---\n## 📦 Version Management"
+      },
+      "name": "text - version header"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type =~ \"microsoft.azurestackhci/clusters\"\r\n| extend ClusterVersion = tostring(properties.reportedProperties.clusterVersion)\r\n| summarize ClusterCount = count() by ClusterVersion\r\n| order by ClusterVersion desc",
+        "size": 3,
+        "title": "Azure Local OS Version Distribution",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": ["{Subscriptions}"],
+        "visualization": "piechart"
+      },
+      "customWidth": "50",
+      "name": "query - version distribution"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type =~ \"microsoft.azurestackhci/clusters\"\r\n| mv-expand nodes = properties.reportedProperties.nodes\r\n| extend \r\n    ClusterName = name,\r\n    NodeName = tostring(nodes.name),\r\n    NodeOSVersion = tostring(nodes.osVersion),\r\n    NodeOSDisplayVersion = tostring(nodes.osDisplayVersion)\r\n| summarize NodeVersions = make_set(NodeOSVersion) by ClusterName\r\n| extend VersionConsistency = iff(array_length(NodeVersions) == 1, \"Consistent\", \"Inconsistent\")\r\n| project ClusterName, VersionConsistency, NodeVersions\r\n| order by VersionConsistency desc, ClusterName asc",
+        "size": 0,
+        "title": "Node Version Consistency Check",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": ["{Subscriptions}"],
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "VersionConsistency",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "icons",
+                "thresholdsGrid": [
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Consistent",
+                    "representation": "success",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Inconsistent",
+                    "representation": "warning",
+                    "text": "{0}{1}"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "customWidth": "50",
+      "name": "query - version consistency"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type =~ \"microsoft.kubernetes/connectedclusters\"\r\n| extend \r\n    KubernetesVersion = tostring(properties.kubernetesVersion),\r\n    AgentVersion = tostring(properties.agentVersion)\r\n| summarize ClusterCount = count() by KubernetesVersion\r\n| order by ClusterCount desc",
+        "size": 0,
+        "title": "AKS Arc Kubernetes Version Distribution",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": ["{Subscriptions}"],
+        "visualization": "barchart"
+      },
+      "name": "query - k8s versions"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "---\n## 🔒 Security Posture"
+      },
+      "name": "text - security header"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type =~ \"microsoft.azurestackhci/clusters\"\r\n| extend \r\n    ImdsAttestation = tostring(properties.reportedProperties.imdsAttestation),\r\n    HasIsolatedVmAttestation = isnotnull(properties.isolatedVmAttestationConfiguration)\r\n| summarize \r\n    ImdsEnabled = countif(ImdsAttestation == \"Enabled\"),\r\n    ImdsDisabled = countif(ImdsAttestation == \"Disabled\"),\r\n    IsolatedVmConfigured = countif(HasIsolatedVmAttestation == true),\r\n    Total = count()\r\n| project ImdsEnabled, ImdsDisabled, IsolatedVmConfigured, Total",
+        "size": 4,
+        "title": "Security Features Status",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": ["{Subscriptions}"],
+        "visualization": "tiles",
+        "tileSettings": {
+          "showBorder": true
+        }
+      },
+      "customWidth": "50",
+      "name": "query - security status"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type =~ \"microsoft.azurestackhci/clusters\"\r\n| extend \r\n    ClusterName = name,\r\n    ImdsAttestation = tostring(properties.reportedProperties.imdsAttestation),\r\n    AttestationEndpoint = tostring(properties.isolatedVmAttestationConfiguration.attestationServiceEndpoint),\r\n    RemoteSupport = tostring(properties.remoteSupportProperties.remoteSupportType),\r\n    AadConfigured = isnotnull(properties.aadClientId)\r\n| project ClusterName, ImdsAttestation, AttestationEndpoint, RemoteSupport, AadConfigured\r\n| order by ClusterName asc",
+        "size": 0,
+        "title": "Security Configuration by Cluster",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": ["{Subscriptions}"]
+      },
+      "customWidth": "50",
+      "name": "query - security details"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "---\n## 🔌 Arc Extensions Inventory"
+      },
+      "name": "text - extensions header"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type =~ \"microsoft.hybridcompute/machines/extensions\" or type =~ \"microsoft.kubernetes/connectedclusters/extensions\"\r\n| extend \r\n    ExtensionName = name,\r\n    ExtensionType = tostring(properties.type),\r\n    ExtensionPublisher = tostring(properties.publisher),\r\n    ProvisioningState = tostring(properties.provisioningState),\r\n    ParentResource = extract(@\"^(.+)/extensions/.+$\", 1, id)\r\n| summarize Count = count() by ExtensionType, ExtensionPublisher\r\n| order by Count desc\r\n| take 10",
+        "size": 0,
+        "title": "Top Arc Extensions Deployed",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": ["{Subscriptions}"],
+        "visualization": "barchart"
+      },
+      "customWidth": "50",
+      "name": "query - extension types"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type =~ \"microsoft.hybridcompute/machines/extensions\" or type =~ \"microsoft.kubernetes/connectedclusters/extensions\"\r\n| extend \r\n    ExtensionName = name,\r\n    ExtensionType = tostring(properties.type),\r\n    ProvisioningState = tostring(properties.provisioningState),\r\n    TypeHandlerVersion = tostring(properties.typeHandlerVersion),\r\n    ParentResource = extract(@\"[^/]+$\", 0, extract(@\"^(.+)/extensions/.+$\", 1, id))\r\n| project ParentResource, ExtensionName, ExtensionType, TypeHandlerVersion, ProvisioningState\r\n| order by ParentResource asc, ExtensionName asc",
+        "size": 0,
+        "title": "Extension Details by Resource",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": ["{Subscriptions}"],
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "ProvisioningState",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "icons",
+                "thresholdsGrid": [
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Succeeded",
+                    "representation": "success",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Failed",
+                    "representation": "failed",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "Default",
+                    "thresholdValue": null,
+                    "representation": "info",
+                    "text": "{0}{1}"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "customWidth": "50",
+      "name": "query - extension details"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "---\n## ⏱️ Resource Lifecycle"
+      },
+      "name": "text - lifecycle header"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type =~ \"microsoft.azurestackhci/clusters\"\r\n| extend \r\n    RegistrationDate = todatetime(properties.registrationTimestamp),\r\n    DaysSinceRegistration = datetime_diff('day', now(), todatetime(properties.registrationTimestamp)),\r\n    TrialDaysRemaining = toint(properties.trialDaysRemaining)\r\n| extend AgeCategory = case(\r\n    DaysSinceRegistration < 30, \"New (< 30 days)\",\r\n    DaysSinceRegistration < 90, \"Recent (30-90 days)\",\r\n    DaysSinceRegistration < 365, \"Established (3-12 months)\",\r\n    \"Mature (> 1 year)\"\r\n)\r\n| summarize Count = count() by AgeCategory",
+        "size": 3,
+        "title": "Cluster Age Distribution",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": ["{Subscriptions}"],
+        "visualization": "piechart"
+      },
+      "customWidth": "50",
+      "name": "query - cluster age"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type =~ \"microsoft.azurestackhci/clusters\"\r\n| extend \r\n    ClusterName = name,\r\n    TrialDaysRemaining = toint(properties.trialDaysRemaining),\r\n    BillingModel = tostring(properties.billingModel)\r\n| where TrialDaysRemaining > 0 or BillingModel contains \"Trial\"\r\n| project ClusterName, TrialDaysRemaining, BillingModel\r\n| order by TrialDaysRemaining asc",
+        "size": 0,
+        "title": "Trial Status & Expiration Alerts",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": ["{Subscriptions}"],
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "TrialDaysRemaining",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "icons",
+                "thresholdsGrid": [
+                  {
+                    "operator": ">",
+                    "thresholdValue": "30",
+                    "representation": "success",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": ">",
+                    "thresholdValue": "7",
+                    "representation": "warning",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "Default",
+                    "thresholdValue": null,
+                    "representation": "failed",
+                    "text": "{0}{1}"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "customWidth": "50",
+      "name": "query - trial status"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type =~ \"microsoft.azurestackhci/clusters\"\r\n| extend \r\n    ClusterName = name,\r\n    RegistrationDate = todatetime(properties.registrationTimestamp),\r\n    LastSync = todatetime(properties.lastSyncTimestamp),\r\n    DaysSinceRegistration = datetime_diff('day', now(), todatetime(properties.registrationTimestamp))\r\n| project ClusterName, RegistrationDate, LastSync, DaysSinceRegistration\r\n| order by RegistrationDate desc",
+        "size": 0,
+        "title": "Registration Timeline",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": ["{Subscriptions}"]
+      },
+      "name": "query - registration timeline"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "---\n## 💰 Cost Optimization & Governance"
+      },
+      "name": "text - cost header"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type in (\"microsoft.azurestackhci/clusters\", \"microsoft.kubernetes/connectedclusters\", \"microsoft.hybridcompute/machines\")\r\n| extend \r\n    HasOwnerTag = isnotnull(tags['Owner']) or isnotnull(tags['owner']),\r\n    HasEnvironmentTag = isnotnull(tags['Environment']) or isnotnull(tags['environment']),\r\n    HasCostCenterTag = isnotnull(tags['CostCenter']) or isnotnull(tags['costcenter']),\r\n    HasAnyTag = array_length(todynamic(tags)) > 0\r\n| summarize \r\n    WithOwner = countif(HasOwnerTag),\r\n    WithEnvironment = countif(HasEnvironmentTag),\r\n    WithCostCenter = countif(HasCostCenterTag),\r\n    WithAnyTag = countif(HasAnyTag),\r\n    Untagged = countif(HasAnyTag == false),\r\n    Total = count()\r\n| project WithOwner, WithEnvironment, WithCostCenter, Untagged, Total",
+        "size": 4,
+        "title": "Governance Tag Compliance",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": ["{Subscriptions}"],
+        "visualization": "tiles",
+        "tileSettings": {
+          "showBorder": true
+        }
+      },
+      "customWidth": "50",
+      "name": "query - governance tags"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type in (\"microsoft.azurestackhci/clusters\", \"microsoft.kubernetes/connectedclusters\", \"microsoft.hybridcompute/machines\")\r\n| extend HasTags = array_length(todynamic(tags)) > 0\r\n| where HasTags == false\r\n| extend \r\n    ResourceName = name,\r\n    ResourceType = case(\r\n        type =~ \"microsoft.azurestackhci/clusters\", \"Azure Local\",\r\n        type =~ \"microsoft.kubernetes/connectedclusters\", \"AKS Arc\",\r\n        type =~ \"microsoft.hybridcompute/machines\", \"Arc Server\",\r\n        \"Other\"\r\n    )\r\n| project ResourceName, ResourceType, resourceGroup, location\r\n| order by ResourceType asc, ResourceName asc",
+        "size": 0,
+        "title": "Untagged Resources (Action Required)",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": ["{Subscriptions}"]
+      },
+      "customWidth": "50",
+      "name": "query - untagged resources"
+    },
+    {
+      "type": 1,
+      "content": {
         "json": "---\n## 🖥️ Azure Local (Stack HCI) Inventory"
       },
       "name": "text - azure local header"
